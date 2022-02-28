@@ -80,6 +80,39 @@ spn_hazards <- function(spn_P,spn_T,cube,params,type="life",
   # check type/validity of density dependence
   check_dd(log_dd = log_dd, params = params)
 
+  # check omega
+  if(is.vector(cube$omega)){
+    # basic omega, tweak for infection status
+    cube$omega <- list("S"=cube$omega,
+                       "E"=cube$omega,
+                       "I"=cube$omega)
+  } else {
+    # omega already set for infection status
+    #  check for lengths and names
+    #  these are equivalent to the checks performed on omega in the cube
+
+    # lengths
+    if(!all(lengths(cube$omega)==cube$genotypesN)){
+      stop("length(s) of omega do not match the number of genotypes in the cube;
+           please check the length(s) in omega")
+    }
+
+    # names
+    if(!all(vapply(X = 1:length(cube$omega),
+                   FUN = function(x){
+                     all(names(cube$omega[[x]]) %in% cube$genotypesID)},
+                   FUN.VALUE = logical(length = 1L))
+    )){
+      stop("genotype(s) in omega do not match genotypes in cube;
+           please check names of omega")
+    }
+
+    # values must be >0
+    if(any(unlist(x = cube$omega, use.names = FALSE) < 0)){
+      stop("omega values must be positive [X>0]")
+    }
+  } # end omega reshape and check
+
 
   # transitions and places
   v <- spn_T$v

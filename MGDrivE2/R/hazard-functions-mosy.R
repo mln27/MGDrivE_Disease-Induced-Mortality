@@ -619,10 +619,11 @@ make_male_mort_haz <- function(trans,u,cube,params,exact = TRUE,tol = 1e-8){
   # weights of those arcs
   w <- trans$s_w
 
-  # omega is dependent on genotype
+  # omega is dependent on genotype and disease status
+  # males don't carry disease, so hardcode to "S" omega
   m_gen <- strsplit(x = u[s], split = "_", fixed = TRUE)[[1]][2]
-  omega <- cube$omega[m_gen]
-  omega <- ifelse(omega == 0,1e3,1/omega)
+  omega <- cube$omega[[1]][m_gen]
+  omega <- if(omega == 0) 1e3 else 1/omega
 
   # return the hazard function
   if(exact){
@@ -663,6 +664,9 @@ make_male_mort_haz <- function(trans,u,cube,params,exact = TRUE,tol = 1e-8){
 
 make_female_mort_haz <- function(trans,u,cube,params,exact = TRUE,tol = 1e-8){
 
+
+  # browser()
+
   # rate constants
   muF <- params$muF
 
@@ -672,10 +676,36 @@ make_female_mort_haz <- function(trans,u,cube,params,exact = TRUE,tol = 1e-8){
   # weights of those arcs
   w <- trans$s_w
 
-  # omega is dependent on genotype
-  f_gen <- strsplit(x = u[s], split = "_", fixed = TRUE)[[1]][2]
-  omega <- cube$omega[f_gen]
-  omega <- ifelse(omega == 0,1e3,1/omega)
+  # omega is dependent on genotype and disease status
+  # [[1]] because it returns a list
+  uSplit <- strsplit(x = u[s], split = "_", fixed = TRUE)[[1]]
+  # second element is always female genotype
+  f_gen <- uSplit[2]
+
+  # this works because we replicate omega to begin with
+  #  therefore, if we have S/E*/I stages, it gets S/I and fails properly to the E index
+  #  if we don't have S/E*/I, then it fails to E, but since omega is just duplicated
+  #   in that setting, we get the same omega
+  # Where is node number? - this logic needs augmented for networks
+  #  Thus:
+  #  check the last index first
+  #   if we are running S/E*/I in a node, it will catch S/I, and fail on everything else
+  #  next, check second to last index
+  #   If we are in a network, the node number is last, and the infection state could
+  #   be second to last. If it's not an S/E*/I sim, see the initial logic at the top
+  #   of this paragraph for why we're safe.
+  #   We always have 2 elements in the vector, because even unmated females are
+  #   labeled "U_geno", which splits to 2 elements
+
+  # check last index
+  omegaIDX <- match(x = uSplit[length(x = uSplit)], table = c("S","E","I"), nomatch = 2)
+  # if failed (this happens most of the time), check second to last index
+  if(omegaIDX == 2){
+    omegaIDX <- match(x = uSplit[length(x = uSplit)-1], table = c("S","E","I"), nomatch = 2)
+  }
+
+  omega <- cube$omega[[omegaIDX]][f_gen]
+  omega <- if(omega == 0) 1e3 else 1/omega
 
   # return the hazard function
   if(exact){
