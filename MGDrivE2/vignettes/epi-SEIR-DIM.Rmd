@@ -37,7 +37,11 @@ set.seed(10)
 
 ### Preface
 
-This vignette describes the **SEIR** (Susceptible-Exposed-Infectious-Recovered) human model of epidemiological dynamics. It is intended that readers are already familiar with the content in the vignettes ["MGDrivE2: One Node Epidemiological Dynamics"](epi-node.html) and ["MGDrivE2: Metapopulation Network Epidemiological Dynamics"](epi-network.html), as this vignette primarily describes the coupling of the **SEIR** human model to the system. The **SEIR** model is appropriate for strongly immunizing diseases (such as Yellow fever or Japanese Encephalitis) which also have a latent period (**E**). The **E** state represents the time needed for the pathogen to colonize and replicate within the host before the host becomes infectious to mosquitoes. This time where an individual is infected but not infected is called the *latent* period, or sometimes, the *exposed* period (Martcheva 2015). Because this vignette assumes familiarity with the other vignettes, we will be brief about any parts of setting up the simulation not specific to the **SEIR** human model.
+This vignette describes the **SEIR** (Susceptible-Exposed-Infectious-Recovered) human model of epidemiological dynamics with disease-induced mortality in mosquitoes. It is intended that readers are already familiar with the content in the vignettes ["MGDrivE2: One Node Epidemiological Dynamics"](epi-node.html) and ["MGDrivE2: Metapopulation Network Epidemiological Dynamics"](epi-network.html), as this vignette primarily describes the coupling of the **SEIR** human model to the system. The **SEIR** model is appropriate for strongly immunizing diseases (such as Yellow fever or Japanese Encephalitis) which also have a latent period (**E**). The **E** state represents the time needed for the pathogen to colonize and replicate within the host before the host becomes infectious to mosquitoes. This time where an individual is infected but not infected is called the *latent* period, or sometimes, the *exposed* period (Martcheva 2015). Because this vignette assumes familiarity with the other vignettes, we will be brief about any parts of setting up the simulation not specific to the **SEIR** human model.
+
+This vignette is a direct contrast to the [MGDrivE2: SEIR Epidemiological Dynamics](epi-SEIR.html) 
+vignette, where the transmission efficiences were modified instead of the mosquito 
+death rate from infection.  
 
 We start by loading the **MGDrivE2** package, as well as the **MGDrivE** package for access to inheritance cubes, **ggplot2** for graphical analysis, and **Matrix** for sparse matrices used in migration. We will use a simple homing-cube to simulate CRISPR-like gene drive for this example.
 
@@ -54,6 +58,7 @@ library(Matrix)
 # Simple gene drive
 #  Assume equal male/female parameters
 #  for simplicity, perfect homing, no female deposition
+#  This is a pretty strong drive
 cube <- MGDrivE::cubeHomingDrive(cM = 0.95,chM = 1.0,
                                  cF = 0.95,chF = 1.0,
                                  dF = 0)
@@ -111,28 +116,36 @@ and mosquito to human, are not impacted by the gene drive. Instead, this drive
 impacts mosquito mortality from infection, so that any mosquito with the gene drive 
 suffers increased mortality when infected.
 
-
-We assume that transmission from human to mosquito is not impacted in modified mosquitoes, but mosquito to human transmission is significantly reduced in modified mosquitoes. For detailed descriptions of these parameters for modelling malaria transmission, see Smith & McKenzie (2004) for extensive discussion.
-
 ```{r}
 # augment the cube with RM transmission parameters
 cube$c <- setNames(object = rep(x = theta$c, times = cube$genotypesN), nm = cube$genotypesID)
-cube$b <- c("AA" = theta$b, "Aa" = 0.35, "aa" = 0)
+cube$b <- setNames(object = rep(x = theta$b, times = cube$genotypesN), nm = cube$genotypesID)
 
+# augment the cube with infection-based adult mortality
+#  grab default omega vector
+omegaDefault <- cube$omega
 
+# generate new omega
+#  pull the original vector
+#  for every copy of the gene drive, increase death rate 2x
+#   WH, HR, HB = 2x
+#   HH = 4x
+omegaInfect <- cube$omega
+omegaInfect[c("WH","HR","HB")] <- 2
+omegaInfect["HH"] <- 4
 
-
-
-
-
-
+# replace omega from cube with omega for infection
+# set in SEI list for infection stages
+cube$omega <- list("S" = omegaDefault,
+                   "E" = omegaDefault,
+                   "I" = omegaInfect)
 ```
 
 ## Initialization of the Petri Net {#init_pn_node}
 
-Just like the **SEI-SIS** disease transmission model, the **SIS-SEIR** sits "on top" of the existing **MGDrivE2** structure. The only difference between these two models are the human dynamics. See the ["MGDrivE2: One Node Epidemiological Dynamics"](epi-node.html) vignette for more details about how this is done.
+Just like the **SEI-SIS** disease transmission model, the **SEI-SEIR** sits "on top" of the existing **MGDrivE2** structure. The only difference between these two models are the human dynamics. See the ["MGDrivE2: One Node Epidemiological Dynamics"](epi-node.html) vignette for more details about how this is done.
 
-With the parameters defined, we use **SIS-SEIR** model specific functions to setup the places and transitions in the Petri Net.
+With the parameters defined, we use **SEI-SEIR** model specific functions to setup the places and transitions in the Petri Net.
 
 ```{r}
 # Places and transitions
@@ -263,7 +276,7 @@ The second section of this vignette describes how to simulate a coupled **SEI-SE
 
 ## Parameterization {#pars_net}
 
-To setup a three-node metapopulation network, with 1000 females in the mosquito-only node, 500 adult female mosquitoes and 250 humans in the shared location, and 250 humans in the human-only node, we first update the parameter object (`theta`) to reflect the new populations. We then set the simulation time to 300 days, but store output every other day this time.
+To setup a three-node metapopulation network, with 1000 females in the mosquito-only node, 500 adult female mosquitoes and 250 humans in the shared location, and 250 humans in the human-only node, we first update the parameter object (`theta`) to reflect the new populations. We then set the simulation time to 250 days, but store output every other day this time.
 
 We will be using the same inheritance cube for these simulations, so none of the parameters for that need updated.
 
@@ -309,7 +322,6 @@ dt <- 2
 
 
 Next, we create the markings for a three-node Petri Net. We specify edges in the movement network separately for humans and mosquitoes (in `h_move` and `m_move`, respectively). Humans can move back and forth between the humans-only and both nodes, and mosquitoes between the mosquitoes-only and both nodes. These matrices are needed to generate the set of transitions. For more information, see the ["MGDrivE2: Metapopulation Network Epidemiological Dynamics"](epi-network.html) vignette. Once the movement is specified, we can setup the places and transitions for the Petri Net.
-
 
 ```{r}
 # nodetypes

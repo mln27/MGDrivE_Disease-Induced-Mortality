@@ -112,9 +112,9 @@ cube$b <- c("AA" = theta$b, "Aa" = 0.35, "aa" = 0)
 
 ## Initialization of the Petri Net {#init_pn_node}
 
-Just like the **SEI-SIS** disease transmission model, the **SIS-SEIR** sits "on top" of the existing **MGDrivE2** structure. The only difference between these two models are the human dynamics. See the ["MGDrivE2: One Node Epidemiological Dynamics"](epi-node.html) vignette for more details about how this is done.
+Just like the **SEI-SIS** disease transmission model, the **SEI-SEIR** sits "on top" of the existing **MGDrivE2** structure. The only difference between these two models are the human dynamics. See the ["MGDrivE2: One Node Epidemiological Dynamics"](epi-node.html) vignette for more details about how this is done.
 
-With the parameters defined, we use **SIS-SEIR** model specific functions to setup the places and transitions in the Petri Net.
+With the parameters defined, we use **SEI-SEIR** model specific functions to setup the places and transitions in the Petri Net.
 
 ```{r}
 # Places and transitions
@@ -245,7 +245,7 @@ The second section of this vignette describes how to simulate a coupled **SEI-SE
 
 ## Parameterization {#pars_net}
 
-To setup a three-node metapopulation network, with 1000 females in the mosquito-only node, 500 adult female mosquitoes and 250 humans in the shared location, and 250 humans in the human-only node, we first update the parameter object (`theta`) to reflect the new populations. We then set the simulation time to 300 days, but store output every other day this time.
+To setup a three-node metapopulation network, with 1000 females in the mosquito-only node, 500 adult female mosquitoes and 250 humans in the shared location, and 250 humans in the human-only node, we first update the parameter object (`theta`) to reflect the new populations. We then set the simulation time to 250 days, but store output every other day this time.
 
 We will be using the same inheritance cube for these simulations, so none of the parameters for that need updated.
 

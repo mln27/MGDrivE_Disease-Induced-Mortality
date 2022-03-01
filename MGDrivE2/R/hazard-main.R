@@ -81,7 +81,10 @@ spn_hazards <- function(spn_P,spn_T,cube,params,type="life",
   check_dd(log_dd = log_dd, params = params)
 
   # check omega
-  if(is.vector(cube$omega)){
+  #  is.vector() is true for vectors and lists
+  #  is.list() is not true for vectors
+  #  https://stackoverflow.com/questions/19501186/how-to-test-if-object-is-a-vector
+  if(!is.list(cube$omega)){
     # basic omega, tweak for infection status
     cube$omega <- list("S"=cube$omega,
                        "E"=cube$omega,
