@@ -52,7 +52,7 @@ sim_trajectory_R(
 }
 \value{
 a list with 2 elements: "state" is the array of returned state values, and "events" will
-return events tracked with \code{Sout} if provided, otherwise is \code{NULL}
+       return events tracked with \code{Sout} if provided, otherwise is \code{NULL}
 }
 \description{
 This function provides a unified interface to the various simulation algorithms

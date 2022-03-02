@@ -25,17 +25,15 @@ solve for \eqn{mu_{Aqua}}.
 }
 \details{
 This function needs the following parameters in \code{params}:
-\itemize{
-\item \code{muF}: adult female mortality
-\item \code{beta}: rate of egg laying
-\item \code{phi}: sex ratio at emergence
-\item \code{qE}: inverse of mean duration of egg stage
-\item \code{nE}: shape parameter of Erlang-distributed egg stage
-\item \code{qL}: inverse of mean duration of larval stage
-\item \code{nL}: shape parameter of Erlang-distributed larval stage
-\item \code{qP}: inverse of mean duration of pupal stage
-\item \code{nP}: shape parameter of Erlang-distributed pupal stage
-}
+ * \code{muF}: adult female mortality
+ * \code{beta}: rate of egg laying
+ * \code{phi}: sex ratio at emergence
+ * \code{qE}: inverse of mean duration of egg stage
+ * \code{nE}: shape parameter of Erlang-distributed egg stage
+ * \code{qL}: inverse of mean duration of larval stage
+ * \code{nL}: shape parameter of Erlang-distributed larval stage
+ * \code{qP}: inverse of mean duration of pupal stage
+ * \code{nP}: shape parameter of Erlang-distributed pupal stage
 }
 \examples{
 theta <- list(qE = 1/4, nE = 2, qL = 1/5, nL = 3, qP = 1/6, nP = 2, muF = 1/12,

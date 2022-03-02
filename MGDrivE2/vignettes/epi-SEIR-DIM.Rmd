@@ -43,7 +43,9 @@ This vignette is a direct contrast to the [MGDrivE2: SEIR Epidemiological Dynami
 vignette, where the transmission efficiences were modified instead of the mosquito 
 death rate from infection.  
 
-We start by loading the **MGDrivE2** package, as well as the **MGDrivE** package for access to inheritance cubes, **ggplot2** for graphical analysis, and **Matrix** for sparse matrices used in migration. We will use a simple homing-cube to simulate CRISPR-like gene drive for this example.
+We start by loading the **MGDrivE2** package, as well as the **MGDrivE** package for access to inheritance cubes, **ggplot2** for graphical analysis, and **Matrix** for sparse matrices used in migration. 
+We will use the basic homing drive as our example, set to fairly high homing rates 
+and no resistance alleles (for simplicity, this is not applicable in reality).
 
 ```{r}
 # simulation functions
@@ -111,7 +113,10 @@ tmax <- 250
 dt <- 1
 ```
 
-Before we setup the sims, we need to augment the cube with genotype specific transmission efficiencies, `b` and `c`, the mosquito to human and human to mosquito transmission efficiencies, as well as disease-induced mortality on infectious mosquitoes. For simplification, we assume that transmission from human to mosquito, 
+Before we setup the sims, we need to augment the cube with genotype specific transmission 
+efficiencies, `b` and `c`, the mosquito to human and human to mosquito transmission 
+efficiencies, as well as disease-induced mortality on infectious mosquitoes. For 
+simplification, we assume that transmission from human to mosquito, 
 and mosquito to human, are not impacted by the gene drive. Instead, this drive 
 impacts mosquito mortality from infection, so that any mosquito with the gene drive 
 suffers increased mortality when infected.
@@ -237,7 +242,17 @@ ggplot(data = rbind(ODE_female, ODE_humans) ) +
   ggtitle("SPN: ODE solution")
 ```
 
-We see the initial influx of humans with latent infections, then the quick spread until most of the population has been infected and recovers. However, only a small portion of the mosquito population gets infected and transmits disease. We see the release of modified female mosquitoes at `time = 25`, and their quick spread into the population. As more humans enter the recovered state, and do not transmit disease anymore, we see the amount of infected mosquitoes decline as well.
+We see the initial influx of humans with latent infections, but it never completely 
+takes off, and we see low-level infection until the population is primarily recovered 
+and the disease dies out.  
+The mosquitoes take an interesting direction. We see the initial wild-type (orange) 
+and releases (green) of gene-drive mosquitoes. However, the gene-drive takes nearly 
+50 days to actually take off - a similar amount of time that it takes the disease 
+to move through the human population. Once the disease has died out in the human 
+population, there is no more transmission in the mosquito population, and the disease-induced 
+mortality is no longer a problem. We can also see this in the mosquito population 
+as the solid lines representing susceptible mosquitoes remain high while the dashed 
+lines representing latent and active infections never increase significantly.
 
 ### Stochastic: Tau-leaping Solutions {#soln_tau_node}
 
@@ -319,7 +334,6 @@ dt <- 2
 
 
 ## Initialization of the Petri Net {#init_pn_net}
-
 
 Next, we create the markings for a three-node Petri Net. We specify edges in the movement network separately for humans and mosquitoes (in `h_move` and `m_move`, respectively). Humans can move back and forth between the humans-only and both nodes, and mosquitoes between the mosquitoes-only and both nodes. These matrices are needed to generate the set of transitions. For more information, see the ["MGDrivE2: Metapopulation Network Epidemiological Dynamics"](epi-network.html) vignette. Once the movement is specified, we can setup the places and transitions for the Petri Net.
 
@@ -493,7 +507,7 @@ ggplot(data = rbind(ODE_f, ODE_m)) +
   ggtitle("SPN: ODE Solution - Adult Stages")
 ```
 
-It is easy to read the genotypes from this plot, the initial releases of adult females, their migration from node 3 to node 2, and the spread of alleles into adult males from the offspring. However, it is more difficult to see the infection dynamics in this plot. That is because there are so few infected mosquitoes, due to the low amount of infected humans, and the steady progression from infected to recovered and thus lack of humans to transmit disease to mosquitoes. Additionally, we see that males do not not participate in disease transmission dynamics, and we will not plot them hereafter.
+It is easy to read the genotypes from this plot, the initial releases of adult females, their migration from node 3 to node 2, and the spread of alleles into adult males from the offspring. However, it is more difficult to see the infection dynamics in this plot. That is because there are so few infected mosquitoes, due to the low amount of infected humans, and increased mortality on infected females. Additionally, we see that males do not not participate in disease transmission dynamics, and we will not plot them hereafter.
 
 ```{r}
 # summarize females/humans by genotype

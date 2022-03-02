@@ -51,52 +51,36 @@ aggregated by a given metric. \cr
 }
 \details{
 Given the \code{read_dir}, this function assumes the follow file structure: \cr
-\itemize{
-\item read_dir
-\itemize{
-\item repetition 1
-\itemize{
-\item M.csv
-\item FS.csv
-\item ... \cr
-}
-\item repetition 2
-\itemize{
-\item M.csv
-\item FS.csv
-\item ... \cr
-}
-\item repetition 3
-\item ... \cr
-}
-}
+ * read_dir
+   * repetition 1
+     * M.csv
+     * FS.csv
+     * ... \cr
+   * repetition 2
+     * M.csv
+     * FS.csv
+     * ... \cr
+   * repetition 3
+   * ... \cr
 
 This function expects the \code{write_dir} to be empty, and it sets up the
 same file structure as the \code{read_dir}. For a 2-node simulation, the output
 will be organized similar to: \cr
-\itemize{
-\item write_dir
-\itemize{
-\item repetition 1
-\itemize{
-\item M_0001.csv
-\item M_0002.csv
-\item FS_0001.csv
-\item FS_0001.csv
-\item ... \cr
-}
-\item repetition 2
-\itemize{
-\item M_0001.csv
-\item M_0002.csv
-\item FS_0001.csv
-\item FS_0001.csv
-\item ... \cr
-}
-\item repetition 3
-\item ... \cr
-}
-}
+ * write_dir
+   * repetition 1
+     * M_0001.csv
+     * M_0002.csv
+     * FS_0001.csv
+     * FS_0001.csv
+     * ... \cr
+   * repetition 2
+     * M_0001.csv
+     * M_0002.csv
+     * FS_0001.csv
+     * FS_0001.csv
+     * ... \cr
+   * repetition 3
+   * ... \cr
 
 \code{stage} defines which life-stages the function will analyze. These stages
 must be any combination of: "E", "L", "P", "M", "U", "FS", "FE", "FI", "H".

@@ -27,7 +27,7 @@ Depends: R (>= 3.1.0)
 Imports: Matrix, deSolve
 Suggests: MGDrivE, knitr, rmarkdown, ggplot2
 VignetteBuilder: knitr
-RoxygenNote: 7.1.1
+RoxygenNote: 7.1.2
 NeedsCompilation: no
 Packaged: 2021-01-12 23:50:54 UTC; slwu89
 Author: Sean L. Wu [aut, cre],

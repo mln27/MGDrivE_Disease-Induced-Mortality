@@ -80,10 +80,8 @@ Parameters are provided by \code{params}.
 
 For information on the method used to solve this distribution, see section
 "3.1.3 Nonsingularity of the Subintensity Matrix" of:
-\itemize{
-\item Bladt, Mogens, and Bo Friis Nielsen. Matrix-exponential distributions in
-applied probability. Vol. 81. New York: Springer, 2017.
-}
+   * Bladt, Mogens, and Bo Friis Nielsen. Matrix-exponential distributions in
+   applied probability. Vol. 81. New York: Springer, 2017.
 
 The places (\code{spn_P}) object is generated from one of the following:
 \code{\link{spn_P_lifecycle_node}}, \code{\link{spn_P_lifecycle_network}},
@@ -106,39 +104,33 @@ parameters necessary to calculate equilibrium values. This is used to set the
 initial population distribution and during the simulation to maintain equilibrium.
 This \code{params} must include the following named parameters, noted as being
 the same as lifecycle parameters, or new for the epidemiological equilibrium
-\itemize{
-\item \strong{(Lifecycle parameters)}
-\itemize{
-\item \code{qE}: inverse of mean duration of egg stage
-\item \code{nE}: shape parameter of Erlang-distributed egg stage
-\item \code{qL}: inverse of mean duration of larval stage
-\item \code{nL}: shape parameter of Erlang-distributed larval stage
-\item \code{qP}: inverse of mean duration of pupal stage
-\item \code{nP}: shape parameter of Erlang-distributed pupal stage
-\item \code{muE}: egg mortality
-\item \code{muL}: density-independent larvae mortality
-\item \code{muP}: pupae mortality
-\item \code{muF}: adult female mortality
-\item \code{muM}: adult male mortality
-\item \code{beta}: egg-laying rate, daily
-\item \code{nu}: mating rate of unmated females
-}
-\item \strong{(Epidemiological parameters)}
-\itemize{
-\item \code{NH}: number of humans, can be a vector
-\item \code{X}: SEIR prevalence in humans, can be a vector of length 4 for 1 node, or a matrix for many nodes
-\item \code{NFX}: number of female mosquitoes, only required if any prevalence (X) is zero
-\item \code{b}: mosquito to human transmission efficiency, can be a vector
-\item \code{c}: human to mosquito transmission efficiency, can be a vector
-\item \code{r}: rate of recovery in humans (1/duration of infectiousness)
-\item \code{muH}: death rate of humans (1/avg lifespan)
-\item \code{f}: rate of blood feeding
-\item \code{Q}: human blood index
-\item \code{qEIP}: related to scale parameter of Gamma distributed EIP (1/qEIP is mean length of EIP)
-\item \code{nEIP}: shape parameter of Gamma distributed EIP
-\item \code{delta}: inverse duration of the latent stage (E)
-}
-}
+ * \strong{(Lifecycle parameters)}
+   * \code{qE}: inverse of mean duration of egg stage
+   * \code{nE}: shape parameter of Erlang-distributed egg stage
+   * \code{qL}: inverse of mean duration of larval stage
+   * \code{nL}: shape parameter of Erlang-distributed larval stage
+   * \code{qP}: inverse of mean duration of pupal stage
+   * \code{nP}: shape parameter of Erlang-distributed pupal stage
+   * \code{muE}: egg mortality
+   * \code{muL}: density-independent larvae mortality
+   * \code{muP}: pupae mortality
+   * \code{muF}: adult female mortality
+   * \code{muM}: adult male mortality
+   * \code{beta}: egg-laying rate, daily
+   * \code{nu}: mating rate of unmated females
+ * \strong{(Epidemiological parameters)}
+   * \code{NH}: number of humans, can be a vector
+   * \code{X}: SEIR prevalence in humans, can be a vector of length 4 for 1 node, or a matrix for many nodes
+   * \code{NFX}: number of female mosquitoes, only required if any prevalence (X) is zero
+   * \code{b}: mosquito to human transmission efficiency, can be a vector
+   * \code{c}: human to mosquito transmission efficiency, can be a vector
+   * \code{r}: rate of recovery in humans (1/duration of infectiousness)
+   * \code{muH}: death rate of humans (1/avg lifespan)
+   * \code{f}: rate of blood feeding
+   * \code{Q}: human blood index
+   * \code{qEIP}: related to scale parameter of Gamma distributed EIP (1/qEIP is mean length of EIP)
+   * \code{nEIP}: shape parameter of Gamma distributed EIP
+   * \code{delta}: inverse duration of the latent stage (E)
 
 The return list contains all of the parameters necessary later in the simulations.
 

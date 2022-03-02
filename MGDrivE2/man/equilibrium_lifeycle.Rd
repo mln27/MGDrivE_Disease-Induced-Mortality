@@ -70,21 +70,19 @@ The \code{params} argument supplies all of the ecological parameters necessary
 to calculate equilibrium values. This is used to set the initial population
 distribution and during the simulation to maintain equilibrium. \code{params}
 must include the following named parameters:
-\itemize{
-\item \code{qE}: inverse of mean duration of egg stage
-\item \code{nE}: shape parameter of Erlang-distributed egg stage
-\item \code{qL}: inverse of mean duration of larval stage
-\item \code{nL}: shape parameter of Erlang-distributed larval stage
-\item \code{qP}: inverse of mean duration of pupal stage
-\item \code{nP}: shape parameter of Erlang-distributed pupal stage
-\item \code{muE}: egg mortality
-\item \code{muL}: density-independent larvae mortality
-\item \code{muP}: pupae mortality
-\item \code{muF}: adult female mortality
-\item \code{muM}: adult male mortality
-\item \code{beta}: egg-laying rate, daily
-\item \code{nu}: mating rate of unmated females
-}
+ * \code{qE}: inverse of mean duration of egg stage
+ * \code{nE}: shape parameter of Erlang-distributed egg stage
+ * \code{qL}: inverse of mean duration of larval stage
+ * \code{nL}: shape parameter of Erlang-distributed larval stage
+ * \code{qP}: inverse of mean duration of pupal stage
+ * \code{nP}: shape parameter of Erlang-distributed pupal stage
+ * \code{muE}: egg mortality
+ * \code{muL}: density-independent larvae mortality
+ * \code{muP}: pupae mortality
+ * \code{muF}: adult female mortality
+ * \code{muM}: adult male mortality
+ * \code{beta}: egg-laying rate, daily
+ * \code{nu}: mating rate of unmated females
 
 The return list contains all of the \code{params} parameters, along with the
 density-dependent parameter, either \code{K} or \code{gamma}. These are the

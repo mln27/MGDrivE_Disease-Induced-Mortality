@@ -7,9 +7,9 @@
 \format{
 matrix with 3 named columns and 8760 rows:
 \describe{
-\item{Grande_Comore}{Hourly death rates for main island}
-\item{Moheli}{Hourly death rates for second island}
-\item{Anjouan}{Hourly death rates for smallest island}
+  \item{Grande_Comore}{Hourly death rates for main island}
+  \item{Moheli}{Hourly death rates for second island}
+  \item{Anjouan}{Hourly death rates for smallest island}
 }
 }
 \usage{
