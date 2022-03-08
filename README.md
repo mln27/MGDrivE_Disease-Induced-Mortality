@@ -15,6 +15,8 @@ There may be packages missing, specifically `devtools`, and the build may contin
 fail and tell you what packages are required for completion. Install any required 
 packages using `install.packages("pkg-name")`.
 
+NB: To use this repository cannot be used in conjunction with the current CRAN version of the MGDrivE2 package 
+(make sure to first uninstall the package if already installed or not install it even if prompted)
 * References
   * [MIT](https://web.mit.edu/insong/www/pdf/rpackage_instructions.pdf)
   * [Coding Club](https://ourcodingclub.github.io/tutorials/writing-r-package/)
