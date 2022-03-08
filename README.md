@@ -5,3 +5,48 @@
 * [MGDrivE2](./MGDrivE2) - Adapted version of MGDrivE2 with disease-induced mortality
 * [MGDrivE2_1.1.0.tar.gz](MGDrivE2_1.1.0.tar.gz) - CRAN version from which this adaptation is based
 
+### Building this Package
+
+There are several methods for building R packages, I will cover quickly cover 
+the three main methods I use. Additionally, here are references from people better 
+than me.  
+
+There may be packages missing, specifically `devtools`, and the build may continually 
+fail and tell you what packages are required for completion. Install any required 
+packages using `install.packages("pkg-name")`.
+
+* References
+  * [MIT](https://web.mit.edu/insong/www/pdf/rpackage_instructions.pdf)
+  * [Coding Club](https://ourcodingclub.github.io/tutorials/writing-r-package/)
+  * [Prestevez](https://www.prestevez.com/post/r-package-tutorial/)
+  * [kbroman](https://kbroman.org/pkg_primer/pages/build.html)
+    * I like everything this guy has blogged.
+  * [r-pkgs](https://r-pkgs.org/index.html)
+    * This one I can vouch for, it's also an entire book. 
+  * [adv-r](https://adv-r.hadley.nz/)
+    * This will take you zero-to-hero, but it's a deep dive.
+* RStudio Method
+  * This is the easiest method, and can be done all in the GUI.
+  1. Download this repository.
+  2. Navigate into the package directory - this is the `~/MGDrivE2/` directory.
+  3. Double click the `MGDrivE2.Rproj` file - this opens the packge in RStudio.
+  4. Go the to `Build` tab at the top of the window.
+  5. Click `clean and rebuild` - this will build and install the package, and the 
+    basic documentation, but not the vignettes.
+* CMDline Method (in R)
+  * This is very similar to the RStudio method, and makes use of the `devtools` package.
+  1. Download this repository.
+  2. In the CMDline, navigate to the package directory  - this is the `~/MGDrivE2/` directory.
+  3. Begin R, and type `devtools::document()` - this builds the basic documentation.
+  4. When that is finished, type `devtools::build()` - this actually builds the package.
+  5. Finaly, type `devtools::install()` - this finishes the installation process, 
+    everything is ready to go.
+* CMDline Method (bash)
+  * This is a more difficult method, but does not involve extra packages such as `devtools`
+  1. Download this repository.
+  2. Navigate into the package directory - this is the `~/MGDrivE2/` directory.
+  3. Type `R CMD build ./` - this builds the package and all documentation, including 
+    vignettes by default.
+  4. Type `cd ../` (alternatively, you can stay 1 level higher in step 2, and replace 
+    `./` with `MGDrivE2`)
+  5. Type `R CMD INSTALL MGDrivE2.tar.gz` - this finishes the installation.
