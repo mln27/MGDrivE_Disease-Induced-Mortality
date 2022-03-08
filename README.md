@@ -31,7 +31,8 @@ packages using `install.packages("pkg-name")`.
   2. Navigate into the package directory - this is the `~/MGDrivE2/` directory.
   3. Double click the `MGDrivE2.Rproj` file - this opens the packge in RStudio.
   4. Go the to `Build` tab at the top of the window.
-  5. Click `clean and rebuild` - this will build and install the package, and the 
+  5. click 'load all'
+  6. Click `clean and rebuild` - this will build and install the package, and the 
     basic documentation, but not the vignettes.
 * CMDline Method (in R)
   * This is very similar to the RStudio method, and makes use of the `devtools` package.
