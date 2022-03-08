@@ -3,7 +3,7 @@ title: "MGDrivE2: SEIR Epidemiological Dynamics with Disease-Induced Mortality"
 #output: pdf_document
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{seir-dynamics}
+  %\VignetteIndexEntry{seir-dynamics-dim}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
