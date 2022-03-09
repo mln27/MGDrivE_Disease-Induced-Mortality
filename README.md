@@ -15,6 +15,8 @@ There may be packages missing, specifically `devtools`, and the build may contin
 fail and tell you what packages are required for completion. Install any required 
 packages using `install.packages("pkg-name")`.
 
+NB: To use this repository cannot be used in conjunction with the current CRAN version of the MGDrivE2 package 
+(make sure to first uninstall the package if already installed or not install it even if prompted)
 * References
   * [MIT](https://web.mit.edu/insong/www/pdf/rpackage_instructions.pdf)
   * [Coding Club](https://ourcodingclub.github.io/tutorials/writing-r-package/)
@@ -39,7 +41,8 @@ packages using `install.packages("pkg-name")`.
   2. Navigate into the package directory - this is the `~/MGDrivE2/` directory.
   3. Double click the `MGDrivE2.Rproj` file - this opens the packge in RStudio.
   4. Go the to `Build` tab at the top of the window.
-  5. Click `clean and rebuild` - this will build and install the package, and the 
+  5. click 'load all'
+  6. Click `clean and rebuild` - this will build and install the package, and the 
     basic documentation, but not the vignettes.
 * CMDline Method (in R)
   * This is very similar to the RStudio method, and makes use of the `devtools` package.
