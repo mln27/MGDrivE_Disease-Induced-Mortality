@@ -45,7 +45,10 @@ death rate from infection.
 
 We start by loading the **MGDrivE2** package, as well as the **MGDrivE** package for access to inheritance cubes, **ggplot2** for graphical analysis, and **Matrix** for sparse matrices used in migration. 
 We will use the basic homing drive as our example, set to fairly high homing rates 
-and no resistance alleles (for simplicity, this is not applicable in reality).
+and no resistance alleles (for simplicity, this is not applicable in reality). 
+At the moment, we setup 2 copies of that cube. We will edit the `cube_DIM` object 
+later to include disease-induced mortality, while the `cube` object will not 
+have any modified mortality.
 
 ```{r}
 # simulation functions
@@ -64,6 +67,9 @@ library(Matrix)
 cube <- MGDrivE::cubeHomingDrive(cM = 0.95,chM = 1.0,
                                  cF = 0.95,chF = 1.0,
                                  dF = 0)
+cube_DIM <- MGDrivE::cubeHomingDrive(cM = 0.95,chM = 1.0,
+                                     cF = 0.95,chF = 1.0,
+                                     dF = 0)
 ```
 
 # One Node Simulations {#node}
@@ -113,7 +119,7 @@ tmax <- 250
 dt <- 1
 ```
 
-Before we setup the sims, we need to augment the cube with genotype specific transmission 
+Before we setup the sims, we need to augment the cubes with genotype specific transmission 
 efficiencies, `b` and `c`, the mosquito to human and human to mosquito transmission 
 efficiencies, as well as disease-induced mortality on infectious mosquitoes. For 
 simplification, we assume that transmission from human to mosquito, 
@@ -122,9 +128,12 @@ impacts mosquito mortality from infection, so that any mosquito with the gene dr
 suffers increased mortality when infected.
 
 ```{r}
-# augment the cube with RM transmission parameters
+# augment the cubes with RM transmission parameters
 cube$c <- setNames(object = rep(x = theta$c, times = cube$genotypesN), nm = cube$genotypesID)
 cube$b <- setNames(object = rep(x = theta$b, times = cube$genotypesN), nm = cube$genotypesID)
+
+cube_DIM$c <- setNames(object = rep(x = theta$c, times = cube$genotypesN), nm = cube$genotypesID)
+cube_DIM$b <- setNames(object = rep(x = theta$b, times = cube$genotypesN), nm = cube$genotypesID)
 
 # augment the cube with infection-based adult mortality
 #  grab default omega vector
@@ -133,24 +142,27 @@ omegaDefault <- cube$omega
 # generate new omega
 #  pull the original vector
 #  for every copy of the gene drive, increase death rate 2x
-#   WH, HR, HB = 2x
-#   HH = 4x
+#   WH, HR, HB = 5x
+#   HH = 10x
 omegaInfect <- cube$omega
-omegaInfect[c("WH","HR","HB")] <- 2
-omegaInfect["HH"] <- 4
+omegaInfect[c("WH","HR","HB")] <- 5
+omegaInfect["HH"] <- 10
 
 # replace omega from cube with omega for infection
 # set in SEI list for infection stages
-cube$omega <- list("S" = omegaDefault,
-                   "E" = omegaDefault,
-                   "I" = omegaInfect)
+cube_DIM$omega <- list("S" = omegaDefault,
+                       "E" = omegaDefault,
+                       "I" = omegaInfect)
 ```
 
 ## Initialization of the Petri Net {#init_pn_node}
 
 Just like the **SEI-SIS** disease transmission model, the **SEI-SEIR** sits "on top" of the existing **MGDrivE2** structure. The only difference between these two models are the human dynamics. See the ["MGDrivE2: One Node Epidemiological Dynamics"](epi-node.html) vignette for more details about how this is done.
 
-With the parameters defined, we use **SEI-SEIR** model specific functions to setup the places and transitions in the Petri Net.
+With the parameters defined, we use **SEI-SEIR** model specific functions to setup 
+the places and transitions in the Petri Net. The specific cube is not important 
+here, since both of our drives have the same inheritance states and transition 
+trajectories, the difference will arise in the rates of those transitions.
 
 ```{r}
 # Places and transitions
@@ -178,9 +190,13 @@ initialCons <- equilibrium_SEI_SEIR(params = theta, log_dd = TRUE, spn_P = SPN_P
                                     cube = cube)
 ```
 
-Finally, we make the hazard functions for the ODE approximation and the discrete stochastic model.
+Finally, we make the hazard functions for the ODE approximation and the discrete 
+stochastic model. This is where the rates of DIM become important - the hazards 
+are the rates of change between states, which we have decided will be different 
+between our drives.
 
 ```{r}
+# No DIM
 # approximate hazards for continous approximation
 approx_hazards <- spn_hazards(spn_P = SPN_P, spn_T = SPN_T, cube = cube,
                               params = initialCons$params, type = "SEIR",
@@ -191,6 +207,18 @@ approx_hazards <- spn_hazards(spn_P = SPN_P, spn_T = SPN_T, cube = cube,
 exact_hazards <- spn_hazards(spn_P = SPN_P, spn_T = SPN_T, cube = cube,
                              params = initialCons$params, type = "SEIR",
                              log_dd = TRUE, exact = TRUE, verbose = FALSE)
+
+# Yes DIM
+# approximate hazards for continous approximation
+approx_hazards_DIM <- spn_hazards(spn_P = SPN_P, spn_T = SPN_T, cube = cube_DIM,
+                                  params = initialCons$params, type = "SEIR",
+                                  log_dd = TRUE, exact = FALSE, tol = 1e-8,
+                                  verbose = FALSE)
+
+# exact hazards for integer-valued state space
+exact_hazards_DIM <- spn_hazards(spn_P = SPN_P, spn_T = SPN_T, cube = cube_DIM,
+                                 params = initialCons$params, type = "SEIR",
+                                 log_dd = TRUE, exact = TRUE, verbose = FALSE)
 ```
 
 ## Simulation of Fully Specified SPN Model {#sim_node}
@@ -221,25 +249,57 @@ events <- rbind(m_events, h_events)
 As in the ["MGDrivE2: One Node Lifecycle Dynamics"](lifecycle-node.html) vignette, we will first numerically simulate the mean-field ODE approximation to the stochastic trajectory, using the approximate hazards suitable for continuous-state approximation (see `?spn_hazards()`). We then look at the disease dynamics in humans and female mosquitoes.
 
 ```{r}
-# run deterministic simulation
+# run deterministic simulations
 ODE_out <- sim_trajectory_R(x0 = initialCons$M0, tmax = tmax, dt = dt, S = S,
                             hazards = approx_hazards, sampler = "ode", method = "lsoda",
+                            events = events, verbose = FALSE)
+
+ODE_out_DIM <- sim_trajectory_R(x0 = initialCons$M0, tmax = tmax, dt = dt, S = S,
+                            hazards = approx_hazards_DIM, sampler = "ode", method = "lsoda",
                             events = events, verbose = FALSE)
 
 # summarize females/humans by genotype
 ODE_female <- summarize_females_epi(out = ODE_out$state,spn_P = SPN_P)
 ODE_humans <- summarize_humans_epiSEIR(out = ODE_out$state)
 
+ODE_female_DIM <- summarize_females_epi(out = ODE_out_DIM$state,spn_P = SPN_P)
+ODE_humans_DIM <- summarize_humans_epiSEIR(out = ODE_out_DIM$state)
+
 # add species for plotting
 ODE_female$species <- "Mosquitoes"
 ODE_humans$species <- "Humans"
 
+ODE_female_DIM$species <- "Mosquitoes_DIM"
+ODE_humans_DIM$species <- "Humans_DIM"
+
 # plot
+# regular gene drive
 ggplot(data = rbind(ODE_female, ODE_humans) ) +
   geom_line(aes(x = time, y = value, color = genotype, linetype = inf)) +
   facet_wrap(. ~ species, scales = "free_y") +
   theme_bw() +
   ggtitle("SPN: ODE solution")
+
+# gene drive with DIM
+ggplot(data = rbind(ODE_female_DIM, ODE_humans_DIM) ) +
+  geom_line(aes(x = time, y = value, color = genotype, linetype = inf)) +
+  facet_wrap(. ~ species, scales = "free_y") +
+  theme_bw() +
+  ggtitle("SPN: ODE solution with DIM")
+
+# compare humans between regular and DIM drives
+ggplot(data = rbind(ODE_humans, ODE_humans_DIM) ) +
+  geom_line(aes(x = time, y = value, color = genotype, linetype = inf)) +
+  facet_wrap(. ~ species, scales = "fixed") +
+  theme_bw() +
+  ggtitle("SPN: ODE solution - Human Comparison")
+
+# compare mosquitoes between regular and DIM drives
+ggplot(data = rbind(ODE_female, ODE_female_DIM) ) +
+  geom_line(aes(x = time, y = value, color = genotype, linetype = inf)) +
+  facet_wrap(. ~ species, scales = "fixed") +
+  theme_bw() +
+  ggtitle("SPN: ODE solution - Female-Mosquito Comparison")
 ```
 
 We see the initial influx of humans with latent infections, but it never completely 
@@ -256,34 +316,73 @@ lines representing latent and active infections never increase significantly.
 
 ### Stochastic: Tau-leaping Solutions {#soln_tau_node}
 
-As a further example, we run a single stochastic realization of the same simulation, using the `tau` sampler with $\Delta t = 0.2$, approximating 5 jumps per day, and plotting the same output for comparison.
+As a further example, we run a single stochastic realization of the same simulation, 
+using the `tau` sampler with $\Delta t = 0.2$, approximating 5 jumps per day, and 
+plotting the same output for comparison.
 
 ```{r}
 # delta t
 dt_stoch <- 0.2
 
-# run tau-leaping simulation
+# run tau-leaping simulations
 PTS_out <- sim_trajectory_R(x0 = initialCons$M0, tmax = tmax, dt = dt,
                             dt_stoch = dt_stoch, S = S, hazards = exact_hazards,
                             sampler = "tau", events = events, verbose = FALSE)
+
+PTS_out_DIM <- sim_trajectory_R(x0 = initialCons$M0, tmax = tmax, dt = dt,
+                                dt_stoch = dt_stoch, S = S, hazards = exact_hazards_DIM,
+                                sampler = "tau", events = events, verbose = FALSE)
 
 # summarize females/humans by genotype
 PTS_female <- summarize_females_epi(out = PTS_out$state,spn_P = SPN_P)
 PTS_humans <- summarize_humans_epiSEIR(out = PTS_out$state)
 
+PTS_female_DIM <- summarize_females_epi(out = PTS_out_DIM$state,spn_P = SPN_P)
+PTS_humans_DIM <- summarize_humans_epiSEIR(out = PTS_out_DIM$state)
+
 # add species for plotting
 PTS_female$species <- "Mosquitoes"
 PTS_humans$species <- "Humans"
 
+PTS_female_DIM$species <- "Mosquitoes_DIM"
+PTS_humans_DIM$species <- "Humans_DIM"
+
 # plot
+# regular gene drive
 ggplot(data = rbind(PTS_female, PTS_humans) ) +
   geom_line(aes(x = time, y = value, color = genotype, linetype = inf)) +
   facet_wrap(. ~ species, scales = "free_y") +
   theme_bw() +
   ggtitle("SPN: Tau-leaping Approximation")
+
+# gene drive with DIM
+ggplot(data = rbind(PTS_female_DIM, PTS_humans_DIM) ) +
+  geom_line(aes(x = time, y = value, color = genotype, linetype = inf)) +
+  facet_wrap(. ~ species, scales = "free_y") +
+  theme_bw() +
+  ggtitle("SPN: Tau-leaping Approximation with DIM")
+
+# compare humans between regular and DIM drives
+ggplot(data = rbind(PTS_humans, PTS_humans_DIM) ) +
+  geom_line(aes(x = time, y = value, color = genotype, linetype = inf)) +
+  facet_wrap(. ~ species, scales = "fixed") +
+  theme_bw() +
+  ggtitle("SPN: Tau-leaping Approximation - Human Comparison")
+
+# compare mosquitoes between regular and DIM drives
+ggplot(data = rbind(PTS_female, PTS_female_DIM) ) +
+  geom_line(aes(x = time, y = value, color = genotype, linetype = inf)) +
+  facet_wrap(. ~ species, scales = "free_y") +
+  theme_bw() +
+  ggtitle("SPN: Tau-leaping Approximation - Female-Mosquito Comparison")
 ```
 
-Encouragingly, we see very similar dynamics from this stochastic realization as we saw in the ODE solution. This implies that $\Delta t = 0.2$ is a good approximation, though one should do many more repetitions before drawing any conclusions.
+Encouragingly, we see very similar dynamics from this stochastic realization as 
+we saw in the ODE solution. This implies that $\Delta t = 0.2$ is a good approximation, 
+though one should do many more repetitions before drawing any conclusions. 
+Additionaly, the quality of the comparison is parameter dependent - the basic gene 
+drive has very similar dynamics, while the gene drive with DIM is heuristically 
+similar, but clearly follows a different path towards a similar outcome. 
 
 # Metapopulation Network Simulations {#net}
 
@@ -413,6 +512,11 @@ approx_hazards <- spn_hazards(spn_P = SPN_P, spn_T = SPN_T, cube = cube,
                               params = initialCons$params , type = "SEIR",
                               log_dd = TRUE, exact = FALSE, tol = 1e-8,
                               verbose = FALSE)
+
+approx_hazards_DIM <- spn_hazards(spn_P = SPN_P, spn_T = SPN_T, cube = cube_DIM,
+                                  params = initialCons$params , type = "SEIR",
+                                  log_dd = TRUE, exact = FALSE, tol = 1e-8,
+                                  verbose = FALSE)
 ```
 
 ## Simulation of Fully Specified SPN Model {#sim_net}
@@ -443,10 +547,14 @@ events <- rbind(m_events,  h_events)
 As in the ["MGDrivE2: Metapopulation Network Epidemiological Dynamics"](epi-network.html) vignette, we will first numerically simulate the mean-field ODE approximation to the stochastic trajectory, using the approximate hazards suitable for continuous-state approximation (see `?spn_hazards()`). Additionally, we will plot several aspects of the population using helper functions provided by **MGDrivE2**.
 
 ```{r}
-# run deterministic simulation
+# run deterministic simulations
 ODE_out <- sim_trajectory_R(x0 = initialCons$M0, tmax = tmax, dt = dt, S = S,
                             hazards = approx_hazards, sampler = "ode", method = "lsoda",
                             events = events, verbose = FALSE)
+
+ODE_out_DIM <- sim_trajectory_R(x0 = initialCons$M0, tmax = tmax, dt = dt, S = S,
+                                hazards = approx_hazards_DIM, sampler = "ode", method = "lsoda",
+                                events = events, verbose = FALSE)
 
 # summarize aquatic stages by genotype
 ODE_e <- summarize_eggs_geno(out = ODE_out$state, spn_P = SPN_P)
@@ -459,7 +567,7 @@ ODE_l$stage <- "Larvae"
 ODE_p$stage <- "Pupae"
 
 # plot by genotype
-ggplot(data = rbind(ODE_e, ODE_l,ODE_p)) +
+ggplot(data = rbind(ODE_e, ODE_l, ODE_p)) +
   geom_line(aes(x = time, y = value, color = genotype)) +
   facet_grid(stage ~ node, scales = "free_y") +
   theme_bw() +
@@ -514,15 +622,53 @@ It is easy to read the genotypes from this plot, the initial releases of adult f
 ODE_female <- summarize_females_epi(out = ODE_out$state, spn_P = SPN_P)
 ODE_humans <- summarize_humans_epiSEIR(out = ODE_out$state)
 
+ODE_female_DIM <- summarize_females_epi(out = ODE_out_DIM$state, spn_P = SPN_P)
+ODE_humans_DIM <- summarize_humans_epiSEIR(out = ODE_out_DIM$state)
+
+# add drive for plotting
+ODE_female$drive <- "noDIM"
+ODE_humans$drive <- "noDIM"
+
+ODE_female_DIM$drive <- "DIM"
+ODE_humans_DIM$drive <- "DIM"
+
 # plot
+# regular gene drive
 ggplot(data = rbind(ODE_female,ODE_humans) ) +
   geom_line(aes(x = time, y = value, color = genotype, linetype = inf)) +
   facet_wrap(. ~ node, scales = "free_y") +
   theme_bw() +
   ggtitle("SPN: ODE Solution")
+
+# DIM gene drive
+ggplot(data = rbind(ODE_female_DIM,ODE_humans_DIM) ) +
+  geom_line(aes(x = time, y = value, color = genotype, linetype = inf)) +
+  facet_wrap(. ~ node, scales = "free_y") +
+  theme_bw() +
+  ggtitle("SPN: ODE Solution with DIM")
+
+# comparison between human outcomes
+ggplot(data = rbind(ODE_humans,ODE_humans_DIM) ) +
+  geom_line(aes(x = time, y = value, color = genotype, linetype = inf)) +
+  facet_wrap(. ~ drive, scales = "fixed") +
+  theme_bw() +
+  ggtitle("SPN: ODE Solution - Human Comparison")
+
+# comparison between mosquito outcomes
+ggplot(data = rbind(ODE_female,ODE_female_DIM) ) +
+  geom_line(aes(x = time, y = value, color = genotype, linetype = inf)) +
+  facet_wrap(node ~ drive, scales = "free_y") +
+  theme_bw() +
+  ggtitle("SPN: ODE Solution - Female-Mosquito Comparison")
 ```
 
-Here, we observe disease dynamics in humans and adult female mosquitoes. We see the influx of humans with latent infections at the beginning, in node 1, and then the release of modified mosquitoes in node 3, and their spread into node 2. Notice, since migration is faster than recovery, the disease finds an intermediate equilibrium, where the transmission in node 2 keeps a fraction of humans infected, while a small fraction of them recover.
+Here, we observe disease dynamics in humans and adult female mosquitoes. We see the influx of humans with latent infections at the beginning, in node 1, and then the release of modified mosquitoes in node 3, and their spread into node 2. Notice, since migration is faster than recovery, the disease finds an intermediate equilibrium, where the transmission in node 2 keeps a fraction of humans infected, while a small fraction of them recover.  
+
+The difference between regular and DIM-enhanced gene drives is much less in this 
+context than in the single-node simulations. We see much less difference between 
+mosquito dynamics as well. This is possibly due to transmission only happening in 
+the second node, while the third node acts as a reservoir, bolstering the gene drive 
+dynamics without costs associated with infection status.
 
 ### Stochastic: CLE Solutions {#soln_cle_net}
 
@@ -532,22 +678,50 @@ As a further example, we run a single stochastic realization of the same simulat
 # delta t
 dt_stoch <- 0.1
 
-# run cle simulation
+# run cle simulations
 CLE_out <- sim_trajectory_R(x0 = initialCons$M0, tmax = tmax, dt = dt,
                             dt_stoch = dt_stoch, S = S, hazards = approx_hazards,
+                            sampler = "cle", events = events, verbose = FALSE)
+
+CLE_out_DIM <- sim_trajectory_R(x0 = initialCons$M0, tmax = tmax, dt = dt,
+                            dt_stoch = dt_stoch, S = S, hazards = approx_hazards_DIM,
                             sampler = "cle", events = events, verbose = FALSE)
 
 # summarize females/humans by genotype
 CLE_female <- summarize_females_epi(out = CLE_out$state, spn_P = SPN_P)
 CLE_humans <- summarize_humans_epiSEIR(out = CLE_out$state)
 
+CLE_female_DIM <- summarize_females_epi(out = CLE_out_DIM$state, spn_P = SPN_P)
+CLE_humans_DIM <- summarize_humans_epiSEIR(out = CLE_out_DIM$state)
+
+# add drive for plotting
+CLE_female$drive <- "noDIM"
+CLE_humans$drive <- "noDIM"
+
+CLE_female_DIM$drive <- "DIM"
+CLE_humans_DIM$drive <- "DIM"
+
 # plot
+# regular gene drive
 ggplot(data = rbind(CLE_female,CLE_humans) ) +
   geom_line(aes(x = time, y = value, color = genotype, linetype = inf)) +
   facet_wrap(. ~ node, scales = "free_y") +
   theme_bw() +
   ggtitle("SPN: CLE Approximation")
 
+# DIM gene drive
+ggplot(data = rbind(CLE_female_DIM,CLE_humans_DIM) ) +
+  geom_line(aes(x = time, y = value, color = genotype, linetype = inf)) +
+  facet_wrap(. ~ node, scales = "free_y") +
+  theme_bw() +
+  ggtitle("SPN: CLE Approximation with DIM")
+
+# comparison of humans
+ggplot(data = rbind(CLE_humans,CLE_humans_DIM) ) +
+  geom_line(aes(x = time, y = value, color = genotype, linetype = inf)) +
+  facet_wrap(. ~ drive, scales = "free_y") +
+  theme_bw() +
+  ggtitle("SPN: CLE Approximation - Human Comparison")
 ```
 
 Again, acknowledge the warning about release times. This is not a problem, just a warning that times will be shifted in comparison to how they were set.

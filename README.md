@@ -25,6 +25,14 @@ packages using `install.packages("pkg-name")`.
     * This one I can vouch for, it's also an entire book. 
   * [adv-r](https://adv-r.hadley.nz/)
     * This will take you zero-to-hero, but it's a deep dive.
+  * [r4ds](https://r4ds.had.co.nz/index.html)
+    * R for data science, also includes projects and packages.
+  * [More Advanced](https://support.rstudio.com/hc/en-us/articles/200486488-Developing-Packages-with-the-RStudio-IDE)
+    * Several links to other resources, not the most clear, but very complete.
+    * Includes some info for windows vs linux.
+  * [Video](https://www.youtube.com/watch?v=79s3z0gIuFU)
+    * 15-min walkthrough of setting up a new package through RStudio.
+  * [Slide Deck](https://johnmuschelli.com/smi_2019/index.html#1)
 * RStudio Method
   * This is the easiest method, and can be done all in the GUI.
   1. Download this repository.
