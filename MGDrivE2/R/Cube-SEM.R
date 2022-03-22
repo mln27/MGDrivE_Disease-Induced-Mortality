@@ -127,7 +127,14 @@ cubeSEM <- function(cM1=0, cM2=0, cP1=0, cP2=0,
   }
 
 
+  # Testing Probs
+  testVec <- runif(n = 16, min = 0, max = 1)
 
+  mmrF <- testVec[1]; mmrM <- testVec[2]
+  pF <- testVec[3]; qF <- testVec[4]; rF <- testVec[5];
+  aF <- testVec[6]; bF <- testVec[7]; cF <- testVec[8]; dF <- testVec[9];
+  pM <- testVec[10]; qM <- testVec[11]; rM <- testVec[12];
+  aM <- testVec[13]; bM <- testVec[14]; cM <- testVec[15]; dM <- testVec[16];
 
 
 
@@ -275,6 +282,12 @@ cubeSEM <- function(cM1=0, cM2=0, cP1=0, cP2=0,
 
   # only doing GD deposition - can assume that SEM is controlled and not under
   #  germline expression.
+  #  GD deposition only impacts the 'W' allele, so it's the only one we need to
+  #  worry about
+
+
+
+
   # There shouldn't be any 'H' by the time we hit this, but in case there is,
   #  inherit as 'G'
   # Don't let 'V' undergo a second round of MMR
@@ -293,6 +306,8 @@ cubeSEM <- function(cM1=0, cM2=0, cP1=0, cP2=0,
 
 
 
+
+  c('W', 'G', 'U', 'R', 'V', 'H', 'S')
 
 
 
@@ -317,7 +332,7 @@ cubeSEM <- function(cM1=0, cM2=0, cP1=0, cP2=0,
 
 
   #############################################################################
-  ## loop over all matings, female outer loop
+  ## Loop over all matings, female outer loop
   #############################################################################
   for(fi in 1:numGen){
     # Female loop
@@ -325,184 +340,167 @@ cubeSEM <- function(cM1=0, cM2=0, cP1=0, cP2=0,
     fSplit <- strsplit(x = genotypes[fi], split = "", useBytes = TRUE)[[1]]
 
     # Score them
-    #  Because R is fun, we can check and store the value of the H check, while
-    #  also using it in the expression for G and S
-    gdScoreF <- any("G" == fSplit) || (semScoreF <- any("H" == fSplit)) || any("S" == fSplit)
+    semScoreF <- any("H" == fSplit)
+    gdScoreF <- semScoreF || any("G" == fSplit) || any("S" == fSplit)
 
 
+    ##########
+    # Female Alleles
+    ##########
+    # First step
+    if(!gdScoreF){
+      # Mendelian
+      fAllele <- c(mendF[[ fSplit[1] ]], mendF[[ fSplit[2] ]])
 
-
-
-
-
-
-
-
-
-
-
-
-    #setup offspring allele lists
-    fPHold <- rep(x = list(list()), times = numAlleles) #vector(mode = "list", length = numAlleles)
-    fAllele <- character(length = 0L)
-    fProbs <- numeric(length = 0L)
-
-
-    # check if there is a Cas9 from either parent
-    if(fScore[1] && fScore[2]){
-      # There is a Cas9 from one parent or the other
-      # There are gRNAs
-      # Thus, there is homing
-
-      # loop over alleles, must keep target sites linked
-      for(allele in 1:numAlleles){
-        # we make the assumption that female homing is more important than male
-        # ie, if we have M and P at locus one on both alleles, the M takes precedence
-        #  in terms of homing.
-
-        # check if maternal homing
-        if(any(fAlleleMat[ ,1]=="M")){
-          # at least one of the Cas9 proteins is from the mother
-          fPHold[[allele]][[1]] <- fLocus1$maternal[[ fAlleleMat[allele,1] ]]
-          fPHold[[allele]][[2]] <- Locus2$maternal[[ fAlleleMat[allele,2] ]]
-        } else {
-          # the Cas9 protein is from the father
-          fPHold[[allele]][[1]] <- fLocus1$paternal[[ fAlleleMat[allele,1] ]]
-          fPHold[[allele]][[2]] <- Locus2$paternal[[ fAlleleMat[allele,2] ]]
-        } # end M/P homing
-
-      } # end loop over alleles
     } else {
-      # either no Cas9 or no gRNAs
-      # all inheritance is Mendelian
+      # GD
 
-      # loop over alleles, must keep target sites linked
-      for(allele in 1:numAlleles){
-        # set target site 1, then target site 2
-        fPHold[[allele]][[1]] <- fLocus1$mendelian[[ fAlleleMat[allele,1] ]]
-        fPHold[[allele]][[2]] <- Locus2$mendelian[[ fAlleleMat[allele,2] ]]
-
-      } # end loop over alleles
-    } # end female scoring
-
-
-    # perform cross-overs
-    hold1 <- fPHold[[1]][[1]] # need
-
-    fPHold[[1]][[1]] <- c((1-crM)*hold1, crM*fPHold[[2]][[1]])
-    fPHold[[2]][[1]] <- c((1-crM)*fPHold[[2]][[1]], crM*hold1)
-
-    # all combinations of female alleles.
-    for(allele in 1:numAlleles){
-      # make combinations of the allele, then store those combinations to mix
-      #  with the next allele
-      # expand combinations
-      holdProbs <- expand.grid(fPHold[[allele]],KEEP.OUT.ATTRS = FALSE, stringsAsFactors = FALSE)
-      holdAllele <- expand.grid(names(fPHold[[allele]][[1]]), names(fPHold[[allele]][[2]]),
-                                KEEP.OUT.ATTRS = FALSE, stringsAsFactors = FALSE)
-
-      # contract (paste or multiply) combinations and store
-      fProbs <- c(fProbs, holdProbs[,1]*holdProbs[,2])
-      fAllele <- c(fAllele, file.path(holdAllele[,1], holdAllele[,2], fsep = ""))
-    }
-
-    # remove zeros
-    fAllele <- fAllele[fProbs!=0]
-    fProbs <- fProbs[fProbs!=0]
-
-
-    ###########################################################################
-    ## loop over male mate. This is the inner loop
-    ###########################################################################
-    for (mi in 1:numGen){
-      # isn't symmetric
-
-      #do male stuff here
-      #split male genotype
-      #This splits all characters.
-      mSplit <- strsplit(x = genotypes[mi], split = "", useBytes = TRUE)[[1]]
-      #Matrix of alleles and target sites
-      #  Each row is an allele, there are 2 alleles
-      #  Each column is the target site on that allele, there are 2 target sites
-      #  this is because target sites are linked on an allele
-      mAlleleMat <- matrix(data = mSplit, nrow = numAlleles, ncol = numAlleles, byrow = TRUE)
-      #Score them
-      mScore[1] <- any("P" == mAlleleMat) || any("M" == mAlleleMat)
-      mScore[2] <- any("G" == mAlleleMat)
-
-      #setup offspring allele lists
-      mPHold <- rep(x = list(list()), times = numAlleles) #vector(mode = "list", length = numAlleles)
-      mAllele <- character(length = 0L)
-      mProbs <- numeric(length = 0L)
-
-
-      # check if there is a Cas9 from either parent
-      if(mScore[1] && mScore[2]){
-        # There is a Cas9 from one parent or the other
-        # There are gRNAs
-        # Thus, there is homing
-
-        # loop over alleles, must keep target sites linked
-        for(allele in 1:numAlleles){
-          # we make the assumption that female homing is more important than male
-          # ie, if we have M and P at locus one on both alleles, the M takes precedence
-          #  in terms of homing.
-
-          # check if maternal homing
-          if(any(mAlleleMat[ ,1]=="M")){
-            # at least one of the Cas9 proteins is from the mother
-            mPHold[[allele]][[1]] <- mLocus1$maternal[[ mAlleleMat[allele,1] ]]
-            mPHold[[allele]][[2]] <- Locus2$maternal[[ mAlleleMat[allele,2] ]]
-          } else {
-            # the Cas9 protein is from the father
-            mPHold[[allele]][[1]] <- mLocus1$paternal[[ mAlleleMat[allele,1] ]]
-            mPHold[[allele]][[2]] <- Locus2$paternal[[ mAlleleMat[allele,2] ]]
-          } # end M/P homing
-
-        } # end loop over alleles
+      # check what the second allele is
+      #  If "W", it has a different shape, which depends on which GD allele is
+      #  present. Since "W" is only in the second place, we can check it easily.
+      if(fSplit[[2]]=='W'){
+        # There is a "W" in the second spot
+        fAllele <- c(gdF[[ fSplit[1] ]], gdF[['W']][[ fSplit[1] ]])
       } else {
-        # either no Cas9 or no gRNAs
-        # all inheritance is Mendelian
-
-        # loop over alleles, must keep target sites linked
-        for(allele in 1:numAlleles){
-          # set target site 1, then target site 2
-          mPHold[[allele]][[1]] <- mLocus1$mendelian[[ mAlleleMat[allele,1] ]]
-          mPHold[[allele]][[2]] <- Locus2$mendelian[[ mAlleleMat[allele,2] ]]
-
-        } # end loop over alleles
-      } # end male scoring
-
-
-      # perform cross-overs
-      hold1 <- mPHold[[1]][[1]] # need
-
-      mPHold[[1]][[1]] <- c((1-crP)*hold1, crP*mPHold[[2]][[1]])
-      mPHold[[2]][[1]] <- c((1-crP)*mPHold[[2]][[1]], crP*hold1)
-
-      # all combinations of female alleles.
-      for(allele in 1:numAlleles){
-        # make combinations of the allele, then store those combinations to mix
-        #  with the next allele
-        # expand combinations
-        holdProbs <- expand.grid(mPHold[[allele]],KEEP.OUT.ATTRS = FALSE, stringsAsFactors = FALSE)
-        holdAllele <- expand.grid(names(mPHold[[allele]][[1]]), names(mPHold[[allele]][[2]]),
-                                  KEEP.OUT.ATTRS = FALSE, stringsAsFactors = FALSE)
-
-        # contract (paste or multiply) combinations and store
-        mProbs <- c(mProbs, holdProbs[,1]*holdProbs[,2])
-        mAllele <- c(mAllele, file.path(holdAllele[,1], holdAllele[,2], fsep = ""))
+        # There is not a "W" in the second spot
+        fAllele <- c(gdF[[ fSplit[1] ]], gdF[[ fSplit[2] ]])
       }
 
-      # remove zeros for test
-      mAllele <- mAllele[mProbs!=0]
-      mProbs <- mProbs[mProbs!=0]
+    } # end first step, Mendelian vs GD
+
+    # Second Step
+    if(semScoreF){
+      # SEM
+      # Here, we take each allele from above, and we target it with the SEM construct
+      #  This is done by multiplying the breakdown of GD results by possible SEM results.
+      # Finally, unlist so it is the same shape as the previous two.
+      # "Map()" is faster, but I can't figure out the output naming.
+      fAllele <- unlist(x = mapply(FUN = "*", fAllele, semF[names(fAllele)],
+                                   SIMPLIFY = TRUE, USE.NAMES = FALSE),
+                        recursive = TRUE, use.names = TRUE)
+    }
+
+    # Aggregate duplicate alleles
+    #  This is mostly useful for SEM, and I could have included it in that step.
+    #  However, it will also be often useful in the GD step (but not always)
+    #  and is useful in one case in the Mendelian step
+    fAlleleReduc <- vapply(X = unique(names(fAllele)),
+                           FUN = function(x){sum(fAllele[names(fAllele)==x])},
+                           FUN.VALUE = numeric(length = 1L))
+
+
+    ###########################################################################
+    ## Male loop. This is the inner loop
+    ###########################################################################
+    for(mi in 1:numGen){
+      # Male loop
+      # Split genotype into alleles
+      mSplit <- strsplit(x = genotypes[mi], split = "", useBytes = TRUE)[[1]]
+
+      # Score them
+      semScoreM <- any("H" == mSplit)
+      gdScoreM <- semScoreM || any("G" == mSplit) || any("S" == mSplit)
+      depScoreM <- any("W" == mSplit)
+
+
+      ##########
+      # Male Alleles
+      ##########
+      # First step
+      if(!gdScoreM){
+        # Mendelian
+        mAllele <- c(mendM[[ mSplit[1] ]], mendM[[ mSplit[2] ]])
+
+      } else {
+        # GD
+
+        # check what the second allele is
+        #  If "W", it has a different shape, which depends on which GD allele is
+        #  present. Since "W" is only in the second place, we can check it easily.
+        if(mSplit[[2]]=='W'){
+          # There is a "W" in the second spot
+          mAllele <- c(gdM[[ mSplit[1] ]], gdM[['W']][[ mSplit[1] ]])
+        } else {
+          # There is not a "W" in the second spot
+          mAllele <- c(gdM[[ mSplit[1] ]], gdM[[ mSplit[2] ]])
+        }
+
+      } # end first step, Mendelian vs GD
+
+      # Second Step
+      if(semScoreM){
+        # SEM
+        # Here, we take each allele from above, and we target it with the SEM construct
+        #  This is done by multiplying the breakdown of GD results by possible SEM results.
+        # Finally, unlist so it is the same shape as the previous two.
+        # "Map()" is faster, but I can't figure out the output naming.
+        mAllele <- unlist(x = mapply(FUN = "*", mAllele, semM[names(mAllele)],
+                                     SIMPLIFY = TRUE, USE.NAMES = FALSE),
+                          recursive = TRUE, use.names = TRUE)
+      }
+
+      # Aggregate duplicate alleles
+      #  This is mostly useful for SEM, and I could have included it in that step.
+      #  However, it will also be often useful in the GD step (but not always)
+      #  and is useful in one case in the Mendelian step
+      mAlleleReduc <- vapply(X = unique(names(mAllele)),
+                             FUN = function(x){sum(mAllele[names(mAllele)==x])},
+                             FUN.VALUE = numeric(length = 1L))
 
 
       #########################################################################
-      ## Get combinations and put them in the tMatrix. This must be done
-      ##  inside the inner loop
+      ## Get combinations of male/female alleles
+      ##  Perform maternal deposition if relevant
+      ## Put results into tMatrix
       #########################################################################
+      # Maternal deposition check
+      #  if there are any 'W' alleles in the male germline, and any GD alleles
+      #  from the females
+      if(gdScoreF && depScoreM){
+        # There is meaningful deposition
+
+        holdList <- vector(mode = "list", length = length(mAlleleReduc))
+
+        for(elem in 1:length(mAlleleReduc)){
+          holdList[[elem]] <-
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+      } else {
+        # There is not meaningful deposition
+        # Alleles recombine indepdendently
+        holdProbs <- expand.grid(fAlleleReduc, mAlleleReduc,
+                                 KEEP.OUT.ATTRS = FALSE, stringsAsFactors = FALSE)
+        holdAllele <- expand.grid(names(fAlleleReduc), names(mAlleleReduc),
+                                  KEEP.OUT.ATTRS = FALSE, stringsAsFactors = FALSE)
+
+
+
+
+
+
+
+
+
+
+      }
+
+
+
+
+
+
+
 
       # male and female alleles/probs are allready combined by target sites, and
       #  we assume alleles segregate indepenently, so we just have to get combinations
@@ -517,6 +515,26 @@ cubeSEM <- function(cM1=0, cM2=0, cP1=0, cP2=0,
       holdProbs <- holdProbs[ ,1]*holdProbs[ ,2]
       holdAllele <- file.path(holdAllele[1,], holdAllele[2,], fsep = "")
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       #aggregate duplicate genotypes
       reducedP <- vapply(X = unique(holdAllele), FUN = function(x){
         sum(holdProbs[holdAllele==x])},
@@ -527,6 +545,24 @@ cubeSEM <- function(cM1=0, cM2=0, cP1=0, cP2=0,
 
       #set values in tMatrix
       tMatrix[fi,mi, names(reducedP) ] <- reducedP
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     }# end male loop
   }# end female loop
