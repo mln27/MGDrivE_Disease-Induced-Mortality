@@ -74,6 +74,9 @@
 #' @param dM Rate of "S" vs "R" allele formation from NHEJ durin SEM process in males
 #'
 #'
+#' @param pDep Rate of cleavage during maternal deposition
+#' @param qDep Rate of HDR during maternal deposition
+#' @param rDep Rate of in-frame resistance generation during maternal deposition
 #'
 #'
 #'
@@ -128,14 +131,14 @@ cubeSEM <- function(cM1=0, cM2=0, cP1=0, cP2=0,
 
 
   # Testing Probs
-  testVec <- runif(n = 16, min = 0, max = 1)
+  testVec <- runif(n = 19, min = 0, max = 1)
 
   mmrF <- testVec[1]; mmrM <- testVec[2]
   pF <- testVec[3]; qF <- testVec[4]; rF <- testVec[5];
   aF <- testVec[6]; bF <- testVec[7]; cF <- testVec[8]; dF <- testVec[9];
   pM <- testVec[10]; qM <- testVec[11]; rM <- testVec[12];
   aM <- testVec[13]; bM <- testVec[14]; cM <- testVec[15]; dM <- testVec[16];
-
+  pDep <- testVec[17]; qDep <- testVec[18]; rDep <- testVec[19];
 
 
 
@@ -284,30 +287,37 @@ cubeSEM <- function(cM1=0, cM2=0, cP1=0, cP2=0,
   #  germline expression.
   #  GD deposition only impacts the 'W' allele, so it's the only one we need to
   #  worry about
+  # Since we don't know what happened in the female before we got here, we can
+  #  have nearly any allele to repair against. The only one we shouldn't see is
+  #  "H", so I'll leave it out, and if we do see it, figure out why.
+  # Since this is HDR dependent, I give the "V" one an opportunity for increased
+  #  MMR, thereby double converting new "V" alleles on into "W" alleles
+  dep <- list('W' = c('W'=1-pDep + pDep*qDep,
+                      'U'=pDep*(1-qDep)*rDep,
+                      'R'=pDep*(1-qDep)*(1-rDep)),
+              'G' = c('W'=1-pDep,
+                      'G'=pDep*qDep,
+                      'U'=pDep*(1-qDep)*rDep,
+                      'R'=pDep*(1-qDep)*(1-rDep)),
+              'U' = c('W'=1-pDep,
+                      'U'=pDep*qDep + pDep*(1-qDep)*rDep,
+                      'R'=pDep*(1-qDep)*(1-rDep)),
+              'R' = c('W'=1-pDep,
+                      'U'=pDep*(1-qDep)*rDep,
+                      'R'=pDep*qDep + pDep*(1-qDep)*(1-rDep)),
+              'V' = c('W'=1-pDep + pDep*qDep*mmrM,
+                      'V'=pDep*qDep*(1-mmrM),
+                      'U'=pDep*(1-qDep)*rDep,
+                      'R'=pDep*(1-qDep)*(1-rDep)),
+              'S' = c('W'=1-pDep,
+                      'S'=pDep*qDep,
+                      'U'=pDep*(1-qDep)*rDep,
+                      'R'=pDep*(1-qDep)*(1-rDep)) )
 
 
 
 
-  # There shouldn't be any 'H' by the time we hit this, but in case there is,
-  #  inherit as 'G'
-  # Don't let 'V' undergo a second round of MMR
-  dep <- list('W' = list('W', 'G', 'U', 'R', 'V', 'H', 'S'),
 
-
-
-
-
-              'G' = c('G'=1),
-              'U' = c('U'=1),
-              'R' = c('R'=1),
-              'V' = c('V'=1),
-              'H' = c('G'=1),
-              'S' = c('S'=1))
-
-
-
-
-  c('W', 'G', 'U', 'R', 'V', 'H', 'S')
 
 
 
@@ -376,7 +386,7 @@ cubeSEM <- function(cM1=0, cM2=0, cP1=0, cP2=0,
       # Finally, unlist so it is the same shape as the previous two.
       # "Map()" is faster, but I can't figure out the output naming.
       fAllele <- unlist(x = mapply(FUN = "*", fAllele, semF[names(fAllele)],
-                                   SIMPLIFY = TRUE, USE.NAMES = FALSE),
+                                   SIMPLIFY = FALSE, USE.NAMES = FALSE),
                         recursive = TRUE, use.names = TRUE)
     }
 
@@ -435,7 +445,7 @@ cubeSEM <- function(cM1=0, cM2=0, cP1=0, cP2=0,
         # Finally, unlist so it is the same shape as the previous two.
         # "Map()" is faster, but I can't figure out the output naming.
         mAllele <- unlist(x = mapply(FUN = "*", mAllele, semM[names(mAllele)],
-                                     SIMPLIFY = TRUE, USE.NAMES = FALSE),
+                                     SIMPLIFY = FALSE, USE.NAMES = FALSE),
                           recursive = TRUE, use.names = TRUE)
       }
 
@@ -453,144 +463,161 @@ cubeSEM <- function(cM1=0, cM2=0, cP1=0, cP2=0,
       ##  Perform maternal deposition if relevant
       ## Put results into tMatrix
       #########################################################################
+      # The maternal deposition check and loop is not very performant, and has
+      #  significant code duplication. I can't think of a better way to do it without
+      #  setting up an awkward list for deposition alleles. So, we duplicate the
+      #  probability and allele sorting/pasting code into 3 places - no deposition,
+      #  deposition with no allele impacted, and deposition against "W" alleles.
+      #  Additionally, we grow a vector in the deposition section, which isn't great
+      #  but I don't have a better idea (and it's small, so hopefully not terrible).
+
+      ##########
       # Maternal deposition check
+      ##########
       #  if there are any 'W' alleles in the male germline, and any GD alleles
       #  from the females
       if(gdScoreF && depScoreM){
         # There is meaningful deposition
 
-        holdList <- vector(mode = "list", length = length(mAlleleReduc))
+        # return object
+        genoVec <- numeric(length = 0L)
+        genoNames <- character(length = 0L)
 
-        for(elem in 1:length(mAlleleReduc)){
-          holdList[[elem]] <-
-        }
+        # things I reference a lot
+        mARNames <- names(mAlleleReduc)
+        fARNames <- names(fAlleleReduc)
 
+        # loop over male alleles
+        for(eleM in 1:length(mAlleleReduc)){
+          # check for allele type
+          #  only "W" alleles are impacted by deposition, so only they have
+          #  complicated repair structures
+          if(mARNames[eleM] == 'W'){
+            # "W" allele
 
+            # Repair during deposition depends on the maternal allele inherited,
+            #  so now we loop over all female alleles, and use that to define
+            #  the repair process.
+            # The we process everything and append to geno/probs vectors
+            for(eleF in 1:length(fAlleleReduc)){
+              # Get repair distribution
+              repVec <- dep[[ fARNames[eleF] ]]
 
+              ##########
+              # Genotype probs
+              ##########
+              #  These come from the male allele probs, the female allele probs,
+              #  and the distribution of repair products
+              genoVec <- c(genoVec, mAlleleReduc[eleM] * fAlleleReduc[eleF] * repVec)
 
+              ##########
+              # Genotypes
+              ##########
+              #  Get all combinations of alleles
+              oneAGenos <- expand.grid(names(repVec), fARNames[eleF],
+                                       KEEP.OUT.ATTRS = FALSE, stringsAsFactors = FALSE)
+              #  Sort alleles
+              oneAGenos <- apply(X = oneAGenos, MARGIN = 1, FUN = sort.int)
+              #  paste and append genotypes
+              genoNames <- c(genoNames, file.path(oneAGenos[1,], oneAGenos[2,], fsep = ""))
 
+            } # end female allele loop
 
+          } else {
+            # Not a "W" allele
+            # These alleles are NOT impacted by deposition, so their outcome
+            #  is simply the probabiliy of the male allele, multiplied by the
+            #  probability of each female allele
 
+            ##########
+            # Genotype probs
+            ##########
+            genoVec <- c(genoVec, mAlleleReduc[eleM] * fAlleleReduc)
 
+            ##########
+            # Genotypes
+            ##########
+            #  Get all combinations of alleles
+            oneAGenos <- expand.grid(mARNames[eleM], fARNames, KEEP.OUT.ATTRS = FALSE, stringsAsFactors = FALSE)
+            #  Sort alleles
+            oneAGenos <- apply(X = oneAGenos, MARGIN = 1, FUN = sort.int)
+            #  paste and append genotypes
+            genoNames <- c(genoNames, file.path(oneAGenos[1,], oneAGenos[2,], fsep = ""))
 
+          } # end male allele check
 
+        } # end male allele loop
 
 
       } else {
         # There is not meaningful deposition
-        # Alleles recombine indepdendently
+        # Alleles recombine independently
         holdProbs <- expand.grid(fAlleleReduc, mAlleleReduc,
                                  KEEP.OUT.ATTRS = FALSE, stringsAsFactors = FALSE)
         holdAllele <- expand.grid(names(fAlleleReduc), names(mAlleleReduc),
                                   KEEP.OUT.ATTRS = FALSE, stringsAsFactors = FALSE)
 
+        # sort alleles into order
+        holdAllele <- apply(X = holdAllele, MARGIN = 1, FUN = sort.int)
+
+        ##########
+        # Genotype Probs
+        ##########
+        genoVec <- holdProbs[ ,1]*holdProbs[ ,2]
+
+        ##########
+        # Genotypes
+        ##########
+        genoNames <- file.path(holdAllele[1,], holdAllele[2,], fsep = "")
+
+      } # end maternal deposition and allele -> genotypes calculation
 
 
-
-
-
-
-
-
-
-      }
-
-
-
-
-
-
-
-
-      # male and female alleles/probs are allready combined by target sites, and
-      #  we assume alleles segregate indepenently, so we just have to get combinations
-      #  of male vs female for the offspring
-      holdProbs <- expand.grid(fProbs, mProbs, KEEP.OUT.ATTRS = FALSE, stringsAsFactors = FALSE)
-      holdAllele <- expand.grid(fAllele, mAllele, KEEP.OUT.ATTRS = FALSE, stringsAsFactors = FALSE)
-
-      # sort alleles into order
-      holdAllele <- apply(X = holdAllele, MARGIN = 1, FUN = sort.int)
-
-      # contract (paste or multiply) combinations
-      holdProbs <- holdProbs[ ,1]*holdProbs[ ,2]
-      holdAllele <- file.path(holdAllele[1,], holdAllele[2,], fsep = "")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-      #aggregate duplicate genotypes
-      reducedP <- vapply(X = unique(holdAllele), FUN = function(x){
-        sum(holdProbs[holdAllele==x])},
-        FUN.VALUE = numeric(length = 1L))
+      ##########
+      # Finish Genotype Distribution
+      ##########
+      # Aggregate duplicate genotypes
+      genoAgg <- vapply(X = unique(genoNames),
+                        FUN = function(x){sum(genoVec[genoNames==x])},
+                        FUN.VALUE = numeric(length = 1L))
 
       #normalize
-      reducedP <- reducedP/sum(reducedP)
+      genoAgg <- genoAgg/sum(genoAgg)
 
       #set values in tMatrix
-      tMatrix[fi,mi, names(reducedP) ] <- reducedP
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+      tMatrix[fi,mi, names(genoAgg) ] <- genoAgg
 
 
     }# end male loop
   }# end female loop
 
-  ## set the other half of the matrix
-  tMatrix[tMatrix < .Machine$double.eps] <- 0 #protection from underflow errors
 
-  ## initialize viability mask. No mother-specific death.
-  viabilityMask <- array(data = 1, dim = c(numGen,numGen,numGen),
+  ## Protect from underflow errors
+  tMatrix[tMatrix < .Machine$double.eps] <- 0
+
+  ## Initialize viability mask. No mother-specific death.
+  viabilityMask <- array(data = 1.0, dim = c(numGen,numGen,numGen),
                          dimnames = list(genotypes, genotypes, genotypes))
 
-  ## genotype-specific modifiers
-  modifiers = cubeModifiers(genotypes, eta = eta, phi = phi, omega = omega, xiF = xiF, xiM = xiM, s = s)
+  ## Genotype-specific modifiers
+  modifiers = cubeModifiers(gtype = genotypes, eta = eta, phi = phi,
+                            omega = omega, xiF = xiF, xiM = xiM, s = s)
 
-  ## put everything into a labeled list to return
+
+  ## Put everything into a labeled list to return
   return(list(
     ih = tMatrix,
     tau = viabilityMask,
     genotypesID = genotypes,
     genotypesN = numGen,
-    wildType = "WWWW",
+    wildType = "WW",
     eta = modifiers$eta,
     phi = modifiers$phi,
     omega = modifiers$omega,
     xiF = modifiers$xiF,
     xiM = modifiers$xiM,
     s = modifiers$s,
-    releaseType = "MGPG"
+    releaseType = "GG"
   ))
 
 }
