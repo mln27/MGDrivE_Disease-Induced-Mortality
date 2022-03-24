@@ -39,6 +39,25 @@
 #' modeled (i.e., having two GD alleles increasing or decreasing the GD rates).
 #'
 #'
+#'
+#'
+#'
+#'
+#'
+#'
+#'
+#'
+#'
+#'
+#'
+#'
+#'
+#'
+#'
+#'
+#'
+#'
+#'
 #' @param pF Rate of cleavage during GD process in females
 #' @param qF Rate of HDR during GD process in females
 #' @param rF Rate of in-frame resistance generation during GD process in females
@@ -47,15 +66,6 @@
 #' @param bF Rate of SSA during SEM process in females
 #' @param cF Rate of "V" allele formation from SSA during SEM process in females
 #' @param dF Rate of "S" vs "R" allele formation from NHEJ during SEM process in females
-#'
-#' @param pM Rate of cleavage during GD process in males
-#' @param qM Rate of HDR during GD process in males
-#' @param rM Rate of in-frame resistance generation during GD process in males
-#'
-#' @param aM Rate of cleavage during SEM process in males
-#' @param bM Rate of SSA during SEM process in males
-#' @param cM Rate of "V" allele formation from SSA during SEM process in males
-#' @param dM Rate of "S" vs "R" allele formation from NHEJ durin SEM process in males
 #'
 #' @param mmrF Rate of MMR in females, driving allelic conversion of "V" into "W"
 #' @param mmrM Rate of MMR in males, driving allelic conversion of "V" into "W"
@@ -75,30 +85,26 @@
 #' @return Named list containing the inheritance cube, transition matrix, genotypes,
 #' wild-type allele, and all genotype-specific parameters.
 #' @export
-cubeSEM <- function(pF=1,qF=1,rF=0,
-                    aF=1,bF=1,cF=1,dF=0,
-                    pM=pF, qM=qF, rM=rF,
-                    aM=aF, bM=bF, cM=cF, dM=dF,
-                    mmrF=0, mmrM=0,
-                    pDep=0, qDep=0, rDep=0,
-                    eta=NULL, phi=NULL,omega=NULL, xiF=NULL, xiM=NULL, s=NULL){
+cubeSEMX <- function(pF=1,qF=1,rF=0,
+                     aF=1,bF=1,cF=1,dF=0,
+                     mmrF=0, mmrM=0,
+                     pDep=0, qDep=0, rDep=0,
+                     eta=NULL, phi=NULL,omega=NULL, xiF=NULL, xiM=NULL, s=NULL){
 
   ## safety checks
-  inputVec <- c(pF,qF,rF, aF,bF,cF,dF, pM,qM,rM, aM,bM,cM,dM, mmrF,mmrM, pDep,qDep,rDep)
+  inputVec <- c(pF,qF,rF, aF,bF,cF,dF, mmrF,mmrM, pDep,qDep,rDep)
   if(any(inputVec>1) || any(inputVec<0)){
     stop("Parameters are rates.\n0 <= x <= 1")
   }
 
 
-  # # Testing Probs
-  # testVec <- runif(n = 19, min = 0, max = 1)
-  #
-  # mmrF <- testVec[1]; mmrM <- testVec[2]
-  # pF <- testVec[3]; qF <- testVec[4]; rF <- testVec[5];
-  # aF <- testVec[6]; bF <- testVec[7]; cF <- testVec[8]; dF <- testVec[9];
-  # pM <- testVec[10]; qM <- testVec[11]; rM <- testVec[12];
-  # aM <- testVec[13]; bM <- testVec[14]; cM <- testVec[15]; dM <- testVec[16];
-  # pDep <- testVec[17]; qDep <- testVec[18]; rDep <- testVec[19];
+  # Testing Probs
+  testVec <- runif(n = 19, min = 0, max = 1)
+
+  mmrF <- testVec[1]; mmrM <- testVec[2]
+  pF <- testVec[3]; qF <- testVec[4]; rF <- testVec[5];
+  aF <- testVec[6]; bF <- testVec[7]; cF <- testVec[8]; dF <- testVec[9];
+  pDep <- testVec[17]; qDep <- testVec[18]; rDep <- testVec[19];
 
 
   #############################################################################
@@ -106,21 +112,28 @@ cubeSEM <- function(pF=1,qF=1,rF=0,
   #############################################################################
 
   # # List of possible alleles
-  # alleles <- c('W', 'G', 'U', 'R', 'V', 'H', 'S')
+  # #  This time, I'll split male/female, so that we can tack them together at the
+  # #  end. This will provide a nice organization in the resulting cube.
+  # alleles <- c('X', 'G', 'U', 'R', 'V', 'H', 'S')
   # # Generate genotypes
   # # This generates all combinations of alleles
-  # hold <- as.matrix(x = expand.grid(alleles, alleles, KEEP.OUT.ATTRS = FALSE, stringsAsFactors = FALSE))
+  # holdF <- as.matrix(x = expand.grid(alleles, alleles, KEEP.OUT.ATTRS = FALSE, stringsAsFactors = FALSE))
+  # holdM <- as.matrix(x = expand.grid(alleles, 'Y', KEEP.OUT.ATTRS = FALSE, stringsAsFactors = FALSE))
   # # Sort both alleles to remove uniques
   # #  The alleles aren't unique, and can occur in any order, so we sort them
   # #  alphabetically in order to remove duplicate genotypes
-  # sortedAlleles <- apply(X = hold, MARGIN = 1, FUN = sort)
+  # sortedAllelesF <- apply(X = holdF, MARGIN = 1, FUN = sort)
+  # sortedAllelesM <- apply(X = holdM, MARGIN = 1, FUN = sort)
   # # Paste together and get unique ones only
-  # genotypes <- unique(do.call(what = paste0, args = list(sortedAlleles[1, ], sortedAlleles[2, ])))
+  # genoF <- unique(do.call(what = paste0, args = list(sortedAllelesF[1, ], sortedAllelesF[2, ])))
+  # genoM <- unique(do.call(what = paste0, args = list(sortedAllelesM[1, ], sortedAllelesM[2, ])))
 
-  genotypes <- c('WW','GW','UW','RW','VW','HW','SW',
-                 'GG','GU','GR','GV','GH','GS','UU',
-                 'RU','UV','HU','SU','RR','RV','HR',
-                 'RS','VV','HV','SV','HH','HS','SS')
+  genoF <- c('XX','GX','UX','RX','VX','HX','SX',
+             'GG','GU','GR','GV','GH','GS','UU',
+             'RU','UV','HU','SU','RR','RV','HR',
+             'RS','VV','HV','SV','HH','HS','SS')
+  genoM <- c('XY','GY','UY','RY','VY','HY','SY')
+  genotypes <- c(genoF, genoM)
 
 
   #############################################################################
@@ -142,40 +155,40 @@ cubeSEM <- function(pF=1,qF=1,rF=0,
   ##########
   # Female
   ##########
-  mendF <- list('W' = c('W'=1),
+  mendF <- list('X' = c('X'=1),
                 'U' = c('U'=1),
                 'R' = c('R'=1),
-                'V' = c('W'=mmrF, 'V'=1-mmrF))
+                'V' = c('X'=mmrF, 'V'=1-mmrF))
 
   # assume that G, H, and S are equally competent at homing
-  gdF <- list('W' = list('G' = c('W'=1-pF,
+  gdF <- list('X' = list('G' = c('X'=1-pF,
                                  'G'=pF*qF,
                                  'U'=pF*(1-qF)*rF,
                                  'R'=pF*(1-qF)*(1-rF)),
-                         'H' = c('W'=1-pF,
+                         'H' = c('X'=1-pF,
                                  'G'=pF*qF,
                                  'U'=pF*(1-qF)*rF,
                                  'R'=pF*(1-qF)*(1-rF)),
-                         'S' = c('W'=1-pF,
+                         'S' = c('X'=1-pF,
                                  'S'=pF*qF,
                                  'U'=pF*(1-qF)*rF,
                                  'R'=pF*(1-qF)*(1-rF)) ),
               'G' = c('G'=1),
               'U' = c('U'=1),
               'R' = c('R'=1),
-              'V' = c('W'=mmrF, 'V'=1-mmrF),
+              'V' = c('X'=mmrF, 'V'=1-mmrF),
               'H' = c('G'=1),
               'S' = c('S'=1))
 
   # This set assumes gdM has occurred, otherwise some probabilities will be wrong.
-  #  "W" isn't targeted a second time
+  #  "X" isn't targeted a second time
   #  "V" doesn't undergo a second round of MMR
   #  "H" should have been turned into "G" by here, which is fine since the
   #      outcomes are the same
-  semF <- list('W' = c('W'=1),
+  semF <- list('X' = c('X'=1),
                'G' = c('G'=1-aF,
                        'V'=aF*bF*cF,
-                       'W'=aF*bF*(1-cF),
+                       'X'=aF*bF*(1-cF),
                        'S'=aF*(1-bF)*dF,
                        'R'=aF*(1-bF)*(1-dF) ),
                'U' = c('U'=1),
@@ -183,7 +196,7 @@ cubeSEM <- function(pF=1,qF=1,rF=0,
                'V' = c('V'=1),
                'H' = c('G'=1-aF,
                        'V'=aF*bF*cF,
-                       'W'=aF*bF*(1-cF),
+                       'X'=aF*bF*(1-cF),
                        'S'=aF*(1-bF)*dF,
                        'R'=aF*(1-bF)*(1-dF) ),
                'S' = c('S'=1))
@@ -191,79 +204,42 @@ cubeSEM <- function(pF=1,qF=1,rF=0,
   ##########
   # Male
   ##########
-  mendM <- list('W' = c('W'=1),
+  mendM <- list('X' = c('X'=1),
+                'G' = c('G'=1),
                 'U' = c('U'=1),
                 'R' = c('R'=1),
-                'V' = c('W'=mmrM, 'V'=1-mmrM))
-
-  # assume that G, H, and S are equally competent at homing
-  gdM <- list('W' = list('G' = c('W'=1-pM,
-                                 'G'=pM*qM,
-                                 'U'=pM*(1-qM)*rM,
-                                 'R'=pM*(1-qM)*(1-rM)),
-                         'H' = c('W'=1-pM,
-                                 'G'=pM*qM,
-                                 'U'=pM*(1-qM)*rM,
-                                 'R'=pM*(1-qM)*(1-rM)),
-                         'S' = c('W'=1-pM,
-                                 'S'=pM*qM,
-                                 'U'=pM*(1-qM)*rM,
-                                 'R'=pM*(1-qM)*(1-rM)) ),
-              'G' = c('G'=1),
-              'U' = c('U'=1),
-              'R' = c('R'=1),
-              'V' = c('W'=mmrM, 'V'=1-mmrM),
-              'H' = c('G'=1),
-              'S' = c('S'=1))
-
-  # This set assumes gdM has occurred, otherwise some probabilities will be wrong.
-  #  "W" isn't targeted a second time
-  #  "V" doesn't undergo a second round of MMR
-  #  "H" should have been turned into "G" by here, which is fine since the
-  #      outcomes are the same
-  semM <- list('W' = c('W'=1),
-               'G' = c('G'=1-aM,
-                       'V'=aM*bM*cM,
-                       'W'=aM*bM*(1-cM),
-                       'S'=aM*(1-bM)*dM,
-                       'R'=aM*(1-bM)*(1-dM) ),
-               'U' = c('U'=1),
-               'R' = c('R'=1),
-               'V' = c('V'=1),
-               'H' = c('G'=1-aM,
-                       'V'=aM*bM*cM,
-                       'W'=aM*bM*(1-cM),
-                       'S'=aM*(1-bM)*dM,
-                       'R'=aM*(1-bM)*(1-dM) ),
-               'S' = c('S'=1))
+                'V' = c('X'=mmrM, 'V'=1-mmrM),
+                'H' = c('G'=1),
+                'S' = c('S'=1),
+                'Y' = c('Y'=1))
 
   # only doing GD deposition - can assume that SEM is controlled and not under
   #  germline expression.
-  #  GD deposition only impacts the 'W' allele, so it's the only one we need to
+  #  GD deposition only impacts the 'X' allele, so it's the only one we need to
   #  worry about
   # Since we don't know what happened in the female before we got here, we can
   #  have nearly any allele to repair against. The only one we shouldn't see is
   #  "H", so I'll leave it out, and if we do see it, figure out why.
   # Since this is HDR dependent, I give the "V" one an opportunity for increased
-  #  MMR, thereby double converting new "V" alleles on into "W" alleles
-  dep <- list('W' = c('W'=1-pDep + pDep*qDep,
+  #  MMR, thereby double converting new "V" alleles on into "X" alleles
+  dep <- list('X' = c('X'=1-pDep + pDep*qDep,
                       'U'=pDep*(1-qDep)*rDep,
                       'R'=pDep*(1-qDep)*(1-rDep)),
-              'G' = c('W'=1-pDep,
+              'G' = c('X'=1-pDep,
                       'G'=pDep*qDep,
                       'U'=pDep*(1-qDep)*rDep,
                       'R'=pDep*(1-qDep)*(1-rDep)),
-              'U' = c('W'=1-pDep,
+              'U' = c('X'=1-pDep,
                       'U'=pDep*qDep + pDep*(1-qDep)*rDep,
                       'R'=pDep*(1-qDep)*(1-rDep)),
-              'R' = c('W'=1-pDep,
+              'R' = c('X'=1-pDep,
                       'U'=pDep*(1-qDep)*rDep,
                       'R'=pDep*qDep + pDep*(1-qDep)*(1-rDep)),
-              'V' = c('W'=1-pDep + pDep*qDep*mmrM,
+              'V' = c('X'=1-pDep + pDep*qDep*mmrM,
                       'V'=pDep*qDep*(1-mmrM),
                       'U'=pDep*(1-qDep)*rDep,
                       'R'=pDep*(1-qDep)*(1-rDep)),
-              'S' = c('W'=1-pDep,
+              'S' = c('X'=1-pDep,
                       'S'=pDep*qDep,
                       'U'=pDep*(1-qDep)*rDep,
                       'R'=pDep*(1-qDep)*(1-rDep)) )
@@ -274,7 +250,9 @@ cubeSEM <- function(pF=1,qF=1,rF=0,
   #############################################################################
 
   # Use this many times down below
-  numGen <- length(genotypes)
+  numGenF <- length(genoF)
+  numGenM <- length(genoM)
+  numGen <- numGenF + numGenM
 
   # Create transition matrix to fill
   tMatrix <- array(data = 0,
@@ -285,7 +263,7 @@ cubeSEM <- function(pF=1,qF=1,rF=0,
   #############################################################################
   ## Loop over all matings, female outer loop
   #############################################################################
-  for(fi in 1:numGen){
+  for(fi in 1:numGenF){
     # Female loop
     # Split genotype into alleles
     fSplit <- strsplit(x = genotypes[fi], split = "", useBytes = TRUE)[[1]]
@@ -309,9 +287,9 @@ cubeSEM <- function(pF=1,qF=1,rF=0,
       # check what the second allele is
       #  If "W", it has a different shape, which depends on which GD allele is
       #  present. Since "W" is only in the second place, we can check it easily.
-      if(fSplit[[2]]=='W'){
+      if(fSplit[[2]]=='X'){
         # There is a "W" in the second spot
-        fAllele <- c(gdF[[ fSplit[1] ]], gdF[['W']][[ fSplit[1] ]])
+        fAllele <- c(gdF[[ fSplit[1] ]], gdF[['X']][[ fSplit[1] ]])
       } else {
         # There is not a "W" in the second spot
         fAllele <- c(gdF[[ fSplit[1] ]], gdF[[ fSplit[2] ]])
@@ -343,60 +321,29 @@ cubeSEM <- function(pF=1,qF=1,rF=0,
     ###########################################################################
     ## Male loop. This is the inner loop
     ###########################################################################
-    for(mi in 1:numGen){
+    for(mi in (1:numGenM + numGenF)){
       # Male loop
       # Split genotype into alleles
       mSplit <- strsplit(x = genotypes[mi], split = "", useBytes = TRUE)[[1]]
 
       # Score them
-      semScoreM <- any("H" == mSplit)
-      gdScoreM <- semScoreM || any("G" == mSplit) || any("S" == mSplit)
-      depScoreM <- any("W" == mSplit)
+      depScoreM <- any("X" == mSplit)
 
 
       ##########
       # Male Alleles
       ##########
-      # First step
-      if(!gdScoreM){
-        # Mendelian
-        mAllele <- c(mendM[[ mSplit[1] ]], mendM[[ mSplit[2] ]])
+      # Always Mendelian, since there's nothing for the drive to target in males
+      mAlleleReduc <- c(mendM[[ mSplit[1] ]], mendM[[ mSplit[2] ]])
 
-      } else {
-        # GD
-
-        # check what the second allele is
-        #  If "W", it has a different shape, which depends on which GD allele is
-        #  present. Since "W" is only in the second place, we can check it easily.
-        if(mSplit[[2]]=='W'){
-          # There is a "W" in the second spot
-          mAllele <- c(gdM[[ mSplit[1] ]], gdM[['W']][[ mSplit[1] ]])
-        } else {
-          # There is not a "W" in the second spot
-          mAllele <- c(gdM[[ mSplit[1] ]], gdM[[ mSplit[2] ]])
-        }
-
-      } # end first step, Mendelian vs GD
-
-      # Second Step
-      if(semScoreM){
-        # SEM
-        # Here, we take each allele from above, and we target it with the SEM construct
-        #  This is done by multiplying the breakdown of GD results by possible SEM results.
-        # Finally, unlist so it is the same shape as the previous two.
-        # "Map()" is faster, but I can't figure out the output naming.
-        mAllele <- unlist(x = mapply(FUN = "*", mAllele, semM[names(mAllele)],
-                                     SIMPLIFY = FALSE, USE.NAMES = FALSE),
-                          recursive = TRUE, use.names = TRUE)
-      }
-
-      # Aggregate duplicate alleles
-      #  This is mostly useful for SEM, and I could have included it in that step.
-      #  However, it will also be often useful in the GD step (but not always)
-      #  and is useful in one case in the Mendelian step
-      mAlleleReduc <- vapply(X = unique(names(mAllele)),
-                             FUN = function(x){sum(mAllele[names(mAllele)==x])},
-                             FUN.VALUE = numeric(length = 1L))
+      # # I don't think this is necessary in this cube
+      # # Aggregate duplicate alleles
+      # #  This is mostly useful for SEM, and I could have included it in that step.
+      # #  However, it will also be often useful in the GD step (but not always)
+      # #  and is useful in one case in the Mendelian step
+      # mAlleleReduc <- vapply(X = unique(names(mAllele)),
+      #                        FUN = function(x){sum(mAllele[names(mAllele)==x])},
+      #                        FUN.VALUE = numeric(length = 1L))
 
 
       #########################################################################
@@ -433,7 +380,7 @@ cubeSEM <- function(pF=1,qF=1,rF=0,
           # check for allele type
           #  only "W" alleles are impacted by deposition, so only they have
           #  complicated repair structures
-          if(mARNames[eleM] == 'W'){
+          if(mARNames[eleM] == 'X'){
             # "W" allele
 
             # Repair during deposition depends on the maternal allele inherited,
@@ -533,14 +480,22 @@ cubeSEM <- function(pF=1,qF=1,rF=0,
   }# end female loop
 
 
-  # # Test stuff
-  # for(mi in 1:numGen){
-  #   for(fi in 1:numGen){
-  #     if(sum(tMatrix[fi,mi, ])-1 > 0.0008){
-  #       cat("Male:", genotypes[mi], ", female:", genotypes[fi])
-  #     }
-  #   }
-  # }
+  # Test stuff
+  for(mi in 1:numGen){
+    for(fi in 1:numGen){
+      if(sum(tMatrix[fi,mi, ])-1 > 0.0008){
+        cat("Male:", genotypes[mi], ", female:", genotypes[fi])
+      }
+    }
+  }
+
+
+
+
+
+
+
+
 
 
   ## Protect from underflow errors
@@ -561,14 +516,14 @@ cubeSEM <- function(pF=1,qF=1,rF=0,
     tau = viabilityMask,
     genotypesID = genotypes,
     genotypesN = numGen,
-    wildType = "WW",
+    wildType = c('XX','XY'),
     eta = modifiers$eta,
     phi = modifiers$phi,
     omega = modifiers$omega,
     xiF = modifiers$xiF,
     xiM = modifiers$xiM,
     s = modifiers$s,
-    releaseType = "GG"
+    releaseType = 'GY'
   ))
 
 }
