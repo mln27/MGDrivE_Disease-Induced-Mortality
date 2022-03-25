@@ -6,56 +6,41 @@
 #   \____/\__,_/_.___/\___/
 #
 #   MGDrivE2: Mosquito Gene Drive Explorer V2 with Disease-Induced Mortality
-#   ReMEDE (REpeat Mediated Excision of a Drive Element)
+#   ReMEDE (REpeat Mediated Excision of a Drive Element) X-Linked
 #   Jared Bennett
 #   jared_bennett@berkeley.edu
 #   March 2022
 #
 ###############################################################################
 
-#' Inheritance Cube: ReMEDE (REpeat Mediated Excision of a Drive Element)
+#' Inheritance Cube: X-Linked ReMEDE (REpeat Mediated Excision of a Drive Element)
 #'
-#' The ReMEDE system, put forth by [Chennuri and Myles](GETLINKWHENEXISTS!!!),
-#' is a realized application of [biodegradable gene drives](https://doi.org/10.1098/rstb.2019.0804)
-#' with application of [Small-Molecule Control](https://doi.org/10.1016/j.celrep.2020.107841)
-#' for the removal of drive elements through induceable SSA. This construct has a
-#' single, autosomal target site that carries gRNA, CAS9, an induceable endonuclease,
-#' and is flanked by direct repeats. There are 7 possible alleles:
-#'  * W: Wild-type
-#'  * G: Active (GD) gene drive, with inactive but functional SEM (self-elimination mechanism) element
-#'  * U: Low-cost resistant allele, non-targetable by GD or SEM (R1 in other literature)
-#'  * R: High-cost resistant allele, non-targetable by GD or SEM (R2 in other literature)
-#'  * V: "wild-type", product of SEM, non-targetable by GD or SEM
-#'  * H: Active GD with active SEM
-#'  * S: Active GD with non-functional SEM
+#' The ReMEDE system, put forth by \href{GETLINKWHENEXISTS!!!}{Chennuri and Myles},
+#' is a realized application of \href{https://doi.org/10.1098/rstb.2019.0804}{biodegradable gene drives}
+#' with application of \href{https://doi.org/10.1016/j.celrep.2020.107841}{Small-Molecule Control}
+#' for the removal of drive elements through induceable SSA.
+#'
+#' This construct has a
+#' single, X-Linked target site that carries gRNA, Cas9, an induceable endonuclease,
+#' and is flanked by direct repeats. There are 8 possible alleles:
+#' \itemize{
+#'  \item X: Wild-type X chromosome
+#'  \item G: Active GD (gene drive), with inactive but functional SEM (self-elimination mechanism) element
+#'  \item U: Low-cost resistant allele, non-targetable by GD or SEM (R1 in other literature)
+#'  \item R: High-cost resistant allele, non-targetable by GD or SEM (R2 in other literature)
+#'  \item V: "wild-type", product of SEM, non-targetable by GD or SEM
+#'  \item H: Active GD with active SEM
+#'  \item S: Active GD with non-functional SEM
+#'  \item Y: Y-chromosome, non-targetable
+#' }
 #'
 #' "V" alleles are simply a minor allele with the same protein sequence as the
 #' major allele, "W". There is the possibility for allelic conversion of the "V"
 #' allele into the "W" allele by mechanisms such as MMR.
 #'
-#' This drive has male and female specific GD and SEM parameters, as well as **correct**
-#' maternal deposition. This is the first instance of an inheritance cube built
-#' in this manner with alleles properly specified. There are no dosage effets
+#' This drive has female specific GD and SEM parameters, as well as \strong{correct}
+#' maternal deposition. There are no dosage effects
 #' modeled (i.e., having two GD alleles increasing or decreasing the GD rates).
-#'
-#'
-#'
-#'
-#'
-#'
-#'
-#'
-#'
-#'
-#'
-#'
-#'
-#'
-#'
-#'
-#'
-#'
-#'
 #'
 #'
 #' @param pF Rate of cleavage during GD process in females
@@ -98,13 +83,13 @@ cubeSEMX <- function(pF=1,qF=1,rF=0,
   }
 
 
-  # Testing Probs
-  testVec <- runif(n = 19, min = 0, max = 1)
-
-  mmrF <- testVec[1]; mmrM <- testVec[2]
-  pF <- testVec[3]; qF <- testVec[4]; rF <- testVec[5];
-  aF <- testVec[6]; bF <- testVec[7]; cF <- testVec[8]; dF <- testVec[9];
-  pDep <- testVec[17]; qDep <- testVec[18]; rDep <- testVec[19];
+  # # Testing Probs
+  # testVec <- runif(n = 19, min = 0, max = 1)
+  #
+  # mmrF <- testVec[1]; mmrM <- testVec[2]
+  # pF <- testVec[3]; qF <- testVec[4]; rF <- testVec[5];
+  # aF <- testVec[6]; bF <- testVec[7]; cF <- testVec[8]; dF <- testVec[9];
+  # pDep <- testVec[17]; qDep <- testVec[18]; rDep <- testVec[19];
 
 
   #############################################################################
@@ -480,22 +465,14 @@ cubeSEMX <- function(pF=1,qF=1,rF=0,
   }# end female loop
 
 
-  # Test stuff
-  for(mi in 1:numGen){
-    for(fi in 1:numGen){
-      if(sum(tMatrix[fi,mi, ])-1 > 0.0008){
-        cat("Male:", genotypes[mi], ", female:", genotypes[fi])
-      }
-    }
-  }
-
-
-
-
-
-
-
-
+  # # Test stuff
+  # for(mi in 1:numGen){
+  #   for(fi in 1:numGen){
+  #     if(sum(tMatrix[fi,mi, ])-1 > 0.0008){
+  #       cat("Male:", genotypes[mi], ", female:", genotypes[fi])
+  #     }
+  #   }
+  # }
 
 
   ## Protect from underflow errors

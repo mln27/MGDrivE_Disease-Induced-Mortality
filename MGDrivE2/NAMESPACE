@@ -2,6 +2,9 @@
 
 export(batch_migration)
 export(calc_move_rate)
+export(cube2csv)
+export(cubeSEM)
+export(cubeSEMX)
 export(equilibrium_SEI_SEIR)
 export(equilibrium_SEI_SIS)
 export(equilibrium_lifeycle)

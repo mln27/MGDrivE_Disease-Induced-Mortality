@@ -15,27 +15,31 @@
 
 #' Inheritance Cube: ReMEDE (REpeat Mediated Excision of a Drive Element)
 #'
-#' The ReMEDE system, put forth by [Chennuri and Myles](GETLINKWHENEXISTS!!!),
-#' is a realized application of [biodegradable gene drives](https://doi.org/10.1098/rstb.2019.0804)
-#' with application of [Small-Molecule Control](https://doi.org/10.1016/j.celrep.2020.107841)
-#' for the removal of drive elements through induceable SSA. This construct has a
-#' single, autosomal target site that carries gRNA, CAS9, an induceable endonuclease,
+#' The ReMEDE system, put forth by \href{GETLINKWHENEXISTS!!!}{Chennuri and Myles},
+#' is a realized application of \href{https://doi.org/10.1098/rstb.2019.0804}{biodegradable gene drives}
+#' with application of \href{https://doi.org/10.1016/j.celrep.2020.107841}{Small-Molecule Control}
+#' for the removal of drive elements through induceable SSA.
+#'
+#' This construct has a
+#' single, autosomal target site that carries gRNA, Cas9, an induceable endonuclease,
 #' and is flanked by direct repeats. There are 7 possible alleles:
-#'  * W: Wild-type
-#'  * G: Active (GD) gene drive, with inactive but functional SEM (self-elimination mechanism) element
-#'  * U: Low-cost resistant allele, non-targetable by GD or SEM (R1 in other literature)
-#'  * R: High-cost resistant allele, non-targetable by GD or SEM (R2 in other literature)
-#'  * V: "wild-type", product of SEM, non-targetable by GD or SEM
-#'  * H: Active GD with active SEM
-#'  * S: Active GD with non-functional SEM
+#' \itemize{
+#'  \item W: Wild-type
+#'  \item G: Active GD (gene drive), with inactive but functional SEM (self-elimination mechanism) element
+#'  \item U: Low-cost resistant allele, non-targetable by GD or SEM (R1 in other literature)
+#'  \item R: High-cost resistant allele, non-targetable by GD or SEM (R2 in other literature)
+#'  \item V: "wild-type", product of SEM, non-targetable by GD or SEM
+#'  \item H: Active GD with active SEM
+#'  \item S: Active GD with non-functional SEM
+#' }
 #'
 #' "V" alleles are simply a minor allele with the same protein sequence as the
 #' major allele, "W". There is the possibility for allelic conversion of the "V"
 #' allele into the "W" allele by mechanisms such as MMR.
 #'
-#' This drive has male and female specific GD and SEM parameters, as well as **correct**
+#' This drive has male and female specific GD and SEM parameters, as well as \strong{correct}
 #' maternal deposition. This is the first instance of an inheritance cube built
-#' in this manner with alleles properly specified. There are no dosage effets
+#' in this manner with alleles properly specified. There are no dosage effects
 #' modeled (i.e., having two GD alleles increasing or decreasing the GD rates).
 #'
 #'
