@@ -12,12 +12,12 @@
 #   2022/03/24
 #   Jared Bennett, jared_bennett@berkeley.edu
 #   Ndeffo Lab, TAMU
-#   This script was pulled from MGDrivE to support new cube designs in V2 for 
+#   This script was pulled from MGDrivE to support new cube designs in V2 for
 #    the Ndeffo lab and collaborators.
 #
 ###############################################################################
 
-#' MGDrivE: Inheritance Cube
+#' MGDrivE2: Inheritance Cube
 #'
 #' To model an arbitrary number of genotypes efficiently in the same mathematical
 #' framework, we use a 3-dimensional array structure (cube) where each axis
@@ -48,38 +48,16 @@
 #' summation of each element in the z-axis (this is, the proportions of each one
 #' of the offspring's genotypes) must be equal to one.
 #'
+#' Note Note: This documentation was shamelessly stolen from MGDrivE in order
+#' to support novel cubes implemented in this package.
+#'
 #' @section Drive-specific Cubes:
 #'
 #' An inheritance cube in an array object that specifies inheritance probabilities
 #' (offspring genotype probability) stratified by male and female parent genotypes.
 #' MGDrivE provides the following cubes to model different gene drive systems:
-#'  * \code{\link{cubeOneLocusTA}}: 1 Locus Maternal-Toxin/Zygotic-Antidote System
-#'  * \code{\link{cubeTwoLocusTA}}: 2 Locus Maternal-Toxin/Zygotic-Antidote System
-#'  * \code{\link{cubeCLEAVRMF}}: Cleave and Rescue
-#'  * \code{\link{cubeCLEAVRX}}: Cleave and Rescue, X-Linked
-#'  * \code{\link{cubeClvR}}: 1 Locus Cleave and Rescue (ClvR)
-#'  * \code{\link{cubeClvR2}}: 2 Locus Cleave and Rescue (ClvR)
-#'  * \code{\link{cubeConfineableHoming}}: Confineable Homing
-#'  * \code{\link{cubeConfineableHomingX}}: Confineable Homing, X-Linked
-#'  * \code{\link{cubeHoming1RA}}: Homing Drive with 1 Resistance Allele
-#'  * \code{\link{cubeHomingDrive}}: CRISPR (Clustered Regularly Interspaced Short Palindromic Repeats) with 2 Resistance Allele
-#'  * \code{\link{cubeHomingDriveSM}}: CRISPR with Small-Molecule Induction
-#'  * \code{\link{cubeXHomingDeposition}}: CRISPR, X-Linked
-#'  * \code{\link{cubeECHACR}}: ECHACR (uh....)
-#'  * \code{\link{cubeECHACRX}}: ECHACR, X-Linked
-#'  * \code{\link{cubeImmunizingReversalMF}}: Immunizing Reversal/Basic Reversal
-#'  * \code{\link{cubeImmunizingReversalX}}: Immunizing Reversal
-#'  * \code{\link{cubeKillerRescue}}: Killer-Rescue System
-#'  * \code{\link{cubeMEDEA}}: MEDEA (Maternal Effect Dominant Embryonic Arrest)
-#'  * \code{\link{cubeReciprocalTranslocations}}: Reciprocal Translocation
-#'  * \code{\link{cubeRIDL}}: RIDL (Release of Insects with Dominant Lethality)
-#'  * \code{\link{cubeXShredderMF}}: X-Shredder, Autosomal
-#'  * \code{\link{cubeXShredderY}}: X-Shredder, Y-Linked
-#'  * \code{\link{cubeMendelian}}: Mendelian
-#'  * \code{\link{cubeSplitDrive}}: Split CRISPR drive
-#'  * \code{\link{cubeTGD}}: trans-complementing Gene Drive
-#'  * \code{\link{cubeTGDX}}: trans-complementing Gene Drive, X-Linked
-#'  * \code{\link{cubeWolbachia}}: Wolbachia
+#'  * \code{\link{cubeSEM}}: Single-locus, autosomal construct implementing a self-elimination mechanism
+#'  * \code{\link{cubeSEMX}}: Single-locus, X-linked construct implementing a self-elimination mechanism
 #'
 #' @section Functions for Cubes:
 #'

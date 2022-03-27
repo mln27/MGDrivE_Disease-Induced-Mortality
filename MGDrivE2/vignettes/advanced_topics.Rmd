@@ -179,14 +179,14 @@ Euler_stepper <- step_Euler(pn = list(S=S, h=evaluate_haz), dt = 0.1)
 
 # checks for simulation time and events
 sim_times <- MGDrivE2:::base_time(tt = tmax, dt = dt)
-events <- MGDrivE2:::base_events(x0 = init$M0, events = events, dt = dt)
+sim_events <- MGDrivE2:::base_events(x0 = init$M0, events = events, dt = dt)
 
 # fum simulation
 euler_out <- MGDrivE2:::sim_trajectory_base_R(
   x0 = init$M0, times = sim_times,
   num_reps = 1,
   stepFun = Euler_stepper,
-  events = events, verbose = FALSE
+  events = sim_events, verbose = FALSE
 )
 
 # summarize female/male
