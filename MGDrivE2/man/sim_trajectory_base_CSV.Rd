@@ -10,7 +10,7 @@ sim_trajectory_base_CSV(
   stepFun,
   folders,
   stage,
-  events0 = NULL,
+  events = NULL,
   batch = NULL,
   Sout = NULL,
   verbose = TRUE
@@ -27,7 +27,7 @@ sim_trajectory_base_CSV(
 
 \item{stage}{vector of life-stages to print}
 
-\item{events0}{a \code{data.frame} of events (uses the same format as required
+\item{events}{a \code{data.frame} of events (uses the same format as required
 in package \code{deSolve} for consistency, see \code{\link[deSolve]{events}}
 for more information)}
 

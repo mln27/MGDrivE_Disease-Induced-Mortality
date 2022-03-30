@@ -4,7 +4,15 @@
 \alias{spn_T_epiSIS_network}
 \title{Make Transitions (T) For a Network (SEI Mosquitoes - SIS Humans)}
 \usage{
-spn_T_epiSIS_network(node_list, spn_P, params, cube, h_move, m_move)
+spn_T_epiSIS_network(
+  node_list,
+  spn_P,
+  params,
+  cube,
+  h_move,
+  m_move,
+  feqTol = 1.5e-08
+)
 }
 \arguments{
 \item{node_list}{a character vector specifying what type of nodes to create;
@@ -19,6 +27,8 @@ spn_T_epiSIS_network(node_list, spn_P, params, cube, h_move, m_move)
 \item{h_move}{binary adjacency matrix indicating if movement of humans between nodes is possible or not}
 
 \item{m_move}{binary adjacency matrix indicating if movement of mosquitoes between nodes is possible or not}
+
+\item{feqTol}{tolerance for numerical equality, default is sqrt(.Machine$double.eps)}
 }
 \value{
 a list with two elements: \code{T} contains transitions packets as lists,

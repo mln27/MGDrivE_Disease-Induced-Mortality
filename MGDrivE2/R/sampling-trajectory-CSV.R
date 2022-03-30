@@ -91,6 +91,9 @@ sim_trajectory_CSV <- function(
     stop("batch migration is incompatible with deterministic simulations")
   }
 
+  # check x0
+  base_x0(x0)
+
   # check/setup step function
   stepFun <- base_stepFunc(
     sampler = sampler,S = S,hazards = hazards, Sout = Sout,
@@ -100,7 +103,7 @@ sim_trajectory_CSV <- function(
   # check/setup simulation time
   simTimes <- base_time(tt = tmax,dt = dt)
 
-  # check/organize events and x0
+  # check/organize events
   events <- base_events(x0 = x0, events = events, dt = dt)
 
   # ensure printing only states that exist
@@ -116,7 +119,7 @@ sim_trajectory_CSV <- function(
     x0 = switch(EXPR = sampler, "ode" = x0, round(x0)),
     times = simTimes, stepFun = stepFun,
     folders = folders, stage = stage,
-    events0 = events, batch = batch, Sout = Sout, verbose = verbose
+    events = events, batch = batch, Sout = Sout, verbose = verbose
   )
 
   # no return
@@ -137,7 +140,7 @@ sim_trajectory_CSV <- function(
 #' @param stepFun a sampling function
 #' @param folders vector of folders to write output
 #' @param stage vector of life-stages to print
-#' @param events0 a \code{data.frame} of events (uses the same format as required
+#' @param events a \code{data.frame} of events (uses the same format as required
 #' in package \code{deSolve} for consistency, see \code{\link[deSolve]{events}}
 #' for more information)
 #' @param batch a \code{list} of batch migration events, created from \code{\link[MGDrivE2]{batch_migration}}, may be set to \code{NULL} if not used
@@ -145,9 +148,11 @@ sim_trajectory_CSV <- function(
 #' @param verbose print a progress bar?
 #'
 #' @return no return, prints .csv files into provided folders
+#'
+#' @importFrom stats rbinom
 sim_trajectory_base_CSV <- function(
   x0, times, stepFun, folders,
-  stage, events0=NULL, batch = NULL,
+  stage, events=NULL, batch = NULL,
   Sout = NULL, verbose=TRUE
 ){
 
@@ -169,6 +174,17 @@ sim_trajectory_base_CSV <- function(
     track <- FALSE
   }
 
+  # setup event info
+  eventsNotNull <- !is.null(events)
+  eventIdx <- 1L
+  eventLen <- nrow(events)
+
+  # setup batch migration info
+  batchNotNull <- !is.null(batch)
+  batchIdx <- 1L
+  batchLen <- length(batch)
+
+
   # loop over repetitions
   for(num_reps in 1:length(folders)){
 
@@ -179,10 +195,10 @@ sim_trajectory_base_CSV <- function(
     }
 
     # reset at the beginning of every simulation
-    events <- events0
-    repBatch <- batch
     state <- list("x"=NULL,"o"=NULL)
     state$x <- x0
+    eventIdx <- 1L
+    batchIdx <- 1L
 
     # Initialize files
     fileCons <- setNames(object = vector(mode = "list", length = lenPS), nm = stage)
@@ -209,6 +225,7 @@ sim_trajectory_base_CSV <- function(
         con = event_con, sep = "\n"
       )
     }
+
 
     # main simulation loop
     for(i in 2:nTime){
@@ -244,24 +261,47 @@ sim_trajectory_base_CSV <- function(
       }
 
       # add the event to the state vector
-      if(!is.null(events)){
-        while((nrow(events) > 0) && events[1,"time"] <= t1){
-          state$x[events[1,"var_id"]] <- state$x[events[1,"var_id"]] + events[1,"value"]
-          events <- events[-1,]
-        }
-      }
+      #  check that there are events
+      if(eventsNotNull){
+        # check that we haven't performed all the events
+        # if there's more events to perform, see if it's the correct time
+        while((eventIdx <= eventLen) && (events[eventIdx,"time"] <= t1)){
+          # switch on release type
+          #  can't name them, cause R is weird. It won't accept numeric labels
+          #  also, numeric indices can't have a default, but at least R doesn't cascade
+          switch(events[eventIdx,"method"],
+                 {# add
+                   state$x[events[eventIdx,"var"]] <- state$x[events[eventIdx,"var"]] + events[eventIdx,"value"]
+                 },
+                 {# swap
+                   state$x[events[eventIdx,"var"]] <- state$x[events[eventIdx,"value"]]
+                   state$x[events[eventIdx,"value"]] <- 0
+                 }
+          ) # end switch
 
-      # batch migration?
-      if(!is.null(repBatch)){
-        while(length(repBatch) > 0 && repBatch[[1]]$time <= t1){
+          # increment index
+          eventIdx <- eventIdx + 1L
+        } # end while
+      } # end event null check
+
+      # perform batch migration
+      #  check that there is batch migration
+      if(batchNotNull){
+        # check that we haven't performed all the events
+        # if there's more events to perform, see if it's the correct time
+        while((batchIdx <= batchLen) && (batch[[batchIdx]]$time <= t1)){
           # how many go?
-          moving <- stats::rbinom(n = length(repBatch[[1]]$from), size = as.integer(state$x[repBatch[[1]]$from]), prob = repBatch[[1]]$prob)
+          moving <- rbinom(n = length(batch[[batchIdx]]$from),
+                           size = as.integer(state$x[batch[[batchIdx]]$from]),
+                           prob = batch[[batchIdx]]$prob)
           # update the state
-          state$x[repBatch[[1]]$from] <- state$x[repBatch[[1]]$from] - moving
-          state$x[repBatch[[1]]$to] <- state$x[repBatch[[1]]$to] + moving
-          repBatch <- repBatch[-1]
-        }
-      }
+          state$x[batch[[batchIdx]]$from] <- state$x[batch[[batchIdx]]$from] - moving
+          state$x[batch[[batchIdx]]$to] <- state$x[batch[[batchIdx]]$to] + moving
+
+          # increment index
+          batchIdx <- batchIdx + 1L
+        } # end while
+      } # end batch null check
 
       # record output
       for(curS in 1:lenPS){
@@ -285,7 +325,6 @@ sim_trajectory_base_CSV <- function(
     if(track){
       close(con=event_con)
     }
-
 
     if(verbose){
       close(pbar)

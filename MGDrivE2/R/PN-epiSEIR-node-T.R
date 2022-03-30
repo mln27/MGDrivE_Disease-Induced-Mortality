@@ -35,12 +35,13 @@
 #' @param spn_P set of places produced by \code{\link{spn_P_epiSEIR_node}}
 #' @param params a named list of parameters (see details)
 #' @param cube an inheritance cube from the \code{MGDrivE} package (e.g. \code{\link[MGDrivE]{cubeMendelian}})
+#' @param feqTol tolerance for numerical equality, default is sqrt(.Machine$double.eps)
 #'
 #' @return a list with two elements: \code{T} contains transitions packets as lists,
 #' \code{v} is the character vector of transitions (T)
 #'
 #' @export
-spn_T_epiSEIR_node <- function(spn_P,params,cube){
+spn_T_epiSEIR_node <- function(spn_P,params,cube,feqTol=1.5e-08){
 
   # set of places
   u <- spn_P$u
@@ -51,7 +52,7 @@ spn_T_epiSEIR_node <- function(spn_P,params,cube){
   # return list of transitions and the vector
   retList <- spn_T_both_epiSEIR(u = u,nE = params$nE,nL = params$nL,nP = params$nP,
                                 nEIP = params$nEIP,cube = cube,node_id = NULL,
-                                T_index = T_index)
+                                T_index = T_index, feqTol = feqTol)
 
 
   # check the set for errors

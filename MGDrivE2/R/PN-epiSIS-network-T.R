@@ -48,12 +48,13 @@
 #' @param cube an inheritance cube from the \code{MGDrivE} package (e.g. \code{\link[MGDrivE]{cubeMendelian}})
 #' @param h_move binary adjacency matrix indicating if movement of humans between nodes is possible or not
 #' @param m_move binary adjacency matrix indicating if movement of mosquitoes between nodes is possible or not
+#' @param feqTol tolerance for numerical equality, default is sqrt(.Machine$double.eps)
 #'
 #' @return a list with two elements: \code{T} contains transitions packets as lists,
 #' \code{v} is the character vector of transitions (T)
 #'
 #' @export
-spn_T_epiSIS_network <- function(node_list,spn_P,params,cube,h_move,m_move){
+spn_T_epiSIS_network <- function(node_list,spn_P,params,cube,h_move,m_move,feqTol=1.5e-08){
 
   # set of places
   u <- spn_P$u
@@ -74,13 +75,13 @@ spn_T_epiSIS_network <- function(node_list,spn_P,params,cube,h_move,m_move){
     if(node_list[t]=="b"){
       T_meta[[t]] <- spn_T_both_epi(u = u,nE = params$nE,nL = params$nL,nP = params$nP,
                                     nEIP = params$nEIP,cube = cube,node_id = t,
-                                    T_index = T_index)
+                                    T_index = T_index, feqTol = feqTol)
     } else if(node_list[t]=="h"){
       T_meta[[t]] <- spn_T_humans_epi(u = u, node_id = t,T_index = T_index)
     } else if(node_list[t]=="m"){
       T_meta[[t]] <- spn_T_mosy_epi(u = u,nE = params$nE,nL = params$nL,nP = params$nP,
                                     nEIP = params$nEIP,cube = cube,node_id = t,
-                                    T_index = T_index)
+                                    T_index = T_index, feqTol = feqTol)
     } else {
       stop(paste0("error: bad entry in node_list, ",node_list[t]))
     }
@@ -276,7 +277,7 @@ spn_T_move_epi <- function(node_list,u,m_move,h_move,nG,g,nEIP,epi_stages,
 #  this is used in spn_T_mosy_epi and spn_T_both_epi
 # This function takes a bunch of shit
 #  Returns a list of lists with all of the base actions
-base_T_mosy_epi <- function(u,nE,nL,nP,nEIP,cube,node_id,T_index,epi_stages){
+base_T_mosy_epi <- function(u,nE,nL,nP,nEIP,cube,node_id,T_index,epi_stages,feqTol){
 
   # genetic states
   g <- cube$genotypesID
@@ -286,9 +287,9 @@ base_T_mosy_epi <- function(u,nE,nL,nP,nEIP,cube,node_id,T_index,epi_stages){
   trans <- base_T_mosy(u=u,nE=nE,nL=nL,nP=nP,nG=nG,g=g,node_id=node_id,T_index=T_index)
 
   # empty list to put the transitions in (X_tt is the set of transitions in this subset of the total T)
-  # is this indexing right now?
-  #  I think we're off by a factor of length(epi_stages)
-  ovi_tt <- vector("list",sum(cube$tau * cube$ih > 0))
+  epi_len <- length(epi_stages)
+  ovi_tt_len <- sum((cube$tau * cube$ih) > 0) * epi_len
+  ovi_tt <- vector("list", ovi_tt_len)
   vv <- 1
 
   # OVIPOSITION
@@ -299,8 +300,10 @@ base_T_mosy_epi <- function(u,nE,nL,nP,nEIP,cube,node_id,T_index,epi_stages){
     for(j in 1:ovi_dims[2]){
       for(k in 1:ovi_dims[3]){
         # only make valid events (based on tau)
-        if(!fequal(cube$tau[i,j,k],0) & !fequal(cube$ih[i,j,k],0)){
-          for(l in 1:length(epi_stages)){
+        if(!fequal(x = cube$ih[i,j,k], y = 0, tol = feqTol) &&
+           !fequal(x = cube$tau[i,j,k], y = 0, tol = feqTol)){
+          # loop over epi stages
+          for(l in 1:epi_len){
             ovi_tt[[vv]] <- make_transition_ovi_epi(T_index,u=u,f_gen=g[i],
                                                     m_gen=g[j],o_gen=g[k],
                                                     inf=epi_stages[l],node=node_id)
@@ -310,6 +313,12 @@ base_T_mosy_epi <- function(u,nE,nL,nP,nEIP,cube,node_id,T_index,epi_stages){
         }
       }
     }
+  }
+
+  # check that both checks return the same thing
+  if(ovi_tt_len != (vv-1)){
+    stop(paste0("Some values of tau or ih are less than ", feqTol,
+           ".\n\tIf this is desired, please reduce PARAM"))
   }
 
 
@@ -467,13 +476,14 @@ base_T_humans_epi <- function(u,node_id,T_index){
 # u: set of places
 # if this is for node 1, T_index = 1, otherwise its max(node[i-1].T_index)+1
 # node_id: what node is this
-spn_T_mosy_epi <- function(u,nE,nL,nP,nEIP,cube,node_id,T_index){
+spn_T_mosy_epi <- function(u,nE,nL,nP,nEIP,cube,node_id,T_index,feqTol){
 
   epi_stages <- c("S",paste0("E",as.character(1:nEIP)),"I")
 
   # make oviposition transitions (events)
   t <- base_T_mosy_epi(u =u,nE= nE,nL= nL,nP = nP,nEIP= nEIP,cube = cube,
-                       node_id=node_id,T_index = T_index,epi_stages = epi_stages)
+                       node_id=node_id,T_index = T_index,epi_stages = epi_stages,
+                       feqTol = feqTol)
 
   # transitions (v)
   v <- unlist(x = lapply(X = t, FUN = lapply, '[[', 'label'), use.names = FALSE)
@@ -523,7 +533,7 @@ spn_T_humans_epi <- function(u,node_id,T_index){
 
 # u: set of places for the mosquito-only node
 # if this is for node 1, T_index = 1, otherwise its max(node[i-1].T_index)+1
-spn_T_both_epi <- function(u,nE,nL,nP,nEIP,cube,node_id,T_index){
+spn_T_both_epi <- function(u,nE,nL,nP,nEIP,cube,node_id,T_index,feqTol){
 
   # genetic states
   g <- cube$genotypesID
@@ -535,7 +545,7 @@ spn_T_both_epi <- function(u,nE,nL,nP,nEIP,cube,node_id,T_index){
   # base things in a list
   base_mos <- base_T_mosy_epi(u = u, nE = nE, nL = nL, nP = nP, nEIP = nEIP,
                                cube = cube, node_id = node_id, T_index = T_index,
-                               epi_stages = epi_stages)
+                               epi_stages = epi_stages, feqTol = feqTol)
 
   # make female infection
   female_inf_tt <- vector("list",nG^2)

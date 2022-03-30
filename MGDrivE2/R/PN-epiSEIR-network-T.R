@@ -48,12 +48,13 @@
 #' @param cube an inheritance cube from the \code{MGDrivE} package (e.g. \code{\link[MGDrivE]{cubeMendelian}})
 #' @param h_move binary adjacency matrix indicating if movement of humans between nodes is possible or not
 #' @param m_move binary adjacency matrix indicating if movement of mosquitoes between nodes is possible or not
+#' @param feqTol tolerance for numerical equality, default is sqrt(.Machine$double.eps)
 #'
 #' @return a list with two elements: \code{T} contains transitions packets as lists,
 #' \code{v} is the character vector of transitions (T)
 #'
 #' @export
-spn_T_epiSEIR_network <- function(node_list,spn_P,params,cube,h_move,m_move){
+spn_T_epiSEIR_network <- function(node_list,spn_P,params,cube,h_move,m_move,feqTol=1.5e-08){
 
   # set of places
   u <- spn_P$u
@@ -74,13 +75,13 @@ spn_T_epiSEIR_network <- function(node_list,spn_P,params,cube,h_move,m_move){
     if(node_list[t]=="b"){
       T_meta[[t]] <- spn_T_both_epiSEIR(u = u,nE = params$nE,nL = params$nL,nP = params$nP,
                                         nEIP = params$nEIP,cube = cube,node_id = t,
-                                        T_index = T_index)
+                                        T_index = T_index, feqTol = feqTol)
     } else if(node_list[t]=="h"){
       T_meta[[t]] <- spn_T_humans_epiSEIR(u = u,node_id = t,T_index = T_index)
     } else if(node_list[t]=="m"){
       T_meta[[t]] <- spn_T_mosy_epi(u = u,nE = params$nE,nL = params$nL,nP = params$nP,
                                     nEIP = params$nEIP,cube = cube,node_id = t,
-                                    T_index = T_index)
+                                    T_index = T_index, feqTol = feqTol)
     } else {
       stop(paste0("error: bad entry in node_list, ",node_list[t]))
     }
@@ -233,7 +234,7 @@ spn_T_humans_epiSEIR <- function(u,node_id,T_index){
 
 # u: set of places
 # if this is for node 1, T_index = 1, otherwise its max(node[i-1].T_index)+1
-spn_T_both_epiSEIR <- function(u,nE,nL,nP,nEIP,cube,node_id,T_index){
+spn_T_both_epiSEIR <- function(u,nE,nL,nP,nEIP,cube,node_id,T_index,feqTol){
 
   # genetic states
   g <- cube$genotypesID
@@ -246,7 +247,7 @@ spn_T_both_epiSEIR <- function(u,nE,nL,nP,nEIP,cube,node_id,T_index){
   # base things in a list
   base_mos <- base_T_mosy_epi(u = u, nE = nE, nL = nL, nP = nP, nEIP = nEIP,
                                cube = cube, node_id = node_id, T_index = T_index,
-                               epi_stages = epi_stages)
+                               epi_stages = epi_stages, feqTol = feqTol)
 
   # make female infection
   female_inf_tt <- vector("list",nG^2)

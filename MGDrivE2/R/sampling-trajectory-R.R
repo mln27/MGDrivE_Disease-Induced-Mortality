@@ -84,6 +84,9 @@ sim_trajectory_R <- function(
     stop("batch migration is incompatible with deterministic simulations")
   }
 
+  # check x0
+  base_x0(x0)
+
   # check/setup step function
   stepFun <- base_stepFunc(
     sampler = sampler,S = S,hazards = hazards,Sout = Sout,
@@ -93,7 +96,7 @@ sim_trajectory_R <- function(
   # check/setup simulation time
   simTimes <- base_time(tt = tmax,dt = dt)
 
-  # check/organize events and x0
+  # check/organize events
   events <- base_events(x0 = x0, events = events, dt = dt)
 
   # pass everything down to base function
@@ -193,58 +196,131 @@ base_time <- function(t0 = 0,tt,dt){
 
 
 #######################################
-# Events Funtion
+# Events Function
+#######################################
+
+# place for checks on the initial markings
+# doesn't return anything, just errors if there are problems
+# x0 = initial petri net markings
+#
+base_x0 <- function(x0){
+  # check names are valid
+  if(any(is.null( names(x0) )) ){
+    stop("Marking(s) on x0 is null, please check and try again.")
+  }
+
+  # check values are valid
+  if(any(x0<0)){
+    stop("All states in x0 must be >=0.")
+  }
+
+  # any more checks?
+}
+
+#######################################
+# Events Function
 #######################################
 
 # check and organize events
-#  this function also checks the names on x0, for lack of a better place
 # x0 = the initial marking of the SPN (initial state)
 # events = a \code{data.frame} of events
 # dt = the time-step at which to return output
 #
 base_events <- function(x0, events, dt){
 
-  if(is.null(events)){
-    return(NULL)
-  }
+  # if no events, escape
+  if(is.null(events)) return(NULL)
 
-  # check x0 names
+  # grab state names
   xNames <- names(x0)
-  if(any(is.null(xNames))){
-    stop("Marking(s) on x0 is null, please check and try again.")
+
+  # setup return matrix
+  #  hardcoding names so we can reorder them here. May be an issue in upgrades
+  retMat <- matrix(data = 0, nrow = nrow(events), ncol = ncol(events),
+                   dimnames = list(NULL, c("time","method","var","value")))
+
+
+  ##########
+  # Time
+  ##########
+  # check event timing, fix if necessary, sort
+  # make sure events occur at times that will actually be sampled
+  if(any(events$time %% dt != 0)){
+    warning("event times do not correspond to a multiple of dt.\n",
+            "event times will be rounded up to the nearest time-step!")
+    events$time = events$time + (events$time %% dt)
   }
 
-  #  check events naming
+  # get order
+  eventOrder <- order(events$time)
+
+  # put times in return matrix
+  retMat[ ,"time"] <- events$time[eventOrder]
+
+
+  ##########
+  # Var
+  ##########
+  # check event name
+  #  this is valid for all types of events
   if(!all(events$var %in% xNames)){
     stop("Events ", paste(events$var[!(events$var %in% xNames)],collapse = ", "),
          " are not valid places in the network.\nPlease check the naming.")
   }
 
+  # Convert to numeric indexing,
+  # put into return matrix
+  retMat[ ,"var"] <- match(x = events$var[eventOrder], table = xNames)
 
-  # if there are events:
-  #  check event timing
-  #  sort events by time
-  if(nrow(events) > 0){
 
-    # make sure events occur at times that will actually be sampled
-    if(any(events$time %% dt != 0)){
-      warning("event times do not correspond to a multiple of dt.\n",
-      "event times will be rounded up to the nearest time-step!")
-      events$time = events$time + (events$time %% dt)
+  ##########
+  # Method and Value
+  ##########
+  # sort methods and values for method check
+  sortMet <- events$method[eventOrder]
+  sortVal <- events$value[eventOrder]
+
+  # check release "method"
+  #  turn method strings into numeric values
+  #  check value, as it depends on method
+
+  # "add" method
+  addIdx <- which(sortMet == "add")
+  if(length(addIdx) > 0){
+    # convert method to numeric
+    # add to return matrix
+    retMat[addIdx,"method"] <- 1
+
+    # put values into return matrix
+    retMat[addIdx,"value"] <- as.numeric(sortVal[addIdx])
+  }
+
+  # swap method
+  swapIdx <- which(sortMet == "swap")
+  if(length(swapIdx) > 0){
+    # convert method to numeric
+    # add to return matrix
+    retMat[swapIdx,"method"] <- 2
+
+    # check values for proper naming
+    if(!all(sortVal[swapIdx] %in% xNames)){
+      stop("Swap events ", paste(sortVal[swapIdx][!(sortVal[swapIdx] %in% xNames)],collapse = ", "),
+           " are not valid places in the network.\nPlease check the values.")
     }
 
-    # sort it
-    events <- events[order(events$time),]
+    # Convert to numeric indexing,
+    # put into return matrix
+    retMat[swapIdx,"value"] <- match(x = sortVal[swapIdx], table = xNames)
+  }
 
-  } # end check/sort
-
-  # use integer position instead of string matching
-  events$var_id <- match(x = events$var, table = names(x0))
+  # next method addition
+  #  expand release types here, follow same patters
 
 
   # return updated events
-  return(events)
+  return(retMat)
 }
+
 
 ################################################################################
 # Base simulation trajectory
@@ -266,7 +342,10 @@ base_events <- function(x0, events, dt){
 #' @param verbose print a progress bar?
 #'
 #' @return matrix of sampled values
-sim_trajectory_base_R <- function(x0, times, num_reps, stepFun, events = NULL, batch = NULL, Sout = NULL, verbose = TRUE){
+#'
+#' @importFrom stats rbinom
+sim_trajectory_base_R <- function(x0, times, num_reps, stepFun, events = NULL,
+                                  batch = NULL, Sout = NULL, verbose = TRUE){
 
   # setup return array
   nTime <- length(times)
@@ -287,20 +366,32 @@ sim_trajectory_base_R <- function(x0, times, num_reps, stepFun, events = NULL, b
     ret_events <- NULL
   }
 
+  # setup event info
+  eventsNotNull <- !is.null(events)
+  eventIdx <- 1L
+  eventLen <- nrow(events)
+
+  # setup batch migration info
+  batchNotNull <- !is.null(batch)
+  batchIdx <- 1L
+  batchLen <- length(batch)
+
+
   # loop over num_reps, calling base function
   for(r in 1:num_reps){
-
-    state <- list("x"=NULL,"o"=NULL)
-    state$x <- x0
-
-    repEvents <- events
-    repBatch <- batch
 
     # progress bar
     if(verbose){
       pbar <- txtProgressBar(min = 1,max = nTime,style = 3)
       cat(" --- begin simulation --- \n")
     }
+
+    # reset at the beginning of every simulation
+    state <- list("x"=NULL,"o"=NULL)
+    state$x <- x0
+    eventIdx <- 1L
+    batchIdx <- 1L
+
 
     # main simulation loop
     for(i in 2:nTime){
@@ -319,26 +410,47 @@ sim_trajectory_base_R <- function(x0, times, num_reps, stepFun, events = NULL, b
       }
 
       # add the event to the state vector
-      #  would it be better to get times of events, then add them in at times
-      #  instead of checking every day if there are events, and then if it isthe day
-      if(!is.null(repEvents)){
-        while((nrow(repEvents) > 0) && repEvents[1,"time"] <= t1){
-          state$x[repEvents[1,"var_id"]] <- state$x[repEvents[1,"var_id"]] + repEvents[1,"value"]
-          repEvents <- repEvents[-1,]
-        }
-      }
+      #  check that there are events
+      if(eventsNotNull){
+        # check that we haven't performed all the events
+        # if there's more events to perform, see if it's the correct time
+        while((eventIdx <= eventLen) && (events[eventIdx,"time"] <= t1)){
+          # switch on release type
+          #  can't name them, cause R is weird. It won't accept numeric labels
+          #  also, numeric indices can't have a default, but at least R doesn't cascade
+          switch(events[eventIdx,"method"],
+                 {# add
+                   state$x[events[eventIdx,"var"]] <- state$x[events[eventIdx,"var"]] + events[eventIdx,"value"]
+                 },
+                 {# swap
+                   state$x[events[eventIdx,"var"]] <- state$x[events[eventIdx,"value"]]
+                   state$x[events[eventIdx,"value"]] <- 0
+                 }
+                 ) # end switch
 
-      # batch migration?
-      if(!is.null(repBatch)){
-        while(length(repBatch) > 0 && repBatch[[1]]$time <= t1){
+          # increment index
+          eventIdx <- eventIdx + 1L
+        } # end while
+      } # end event null check
+
+      # perform batch migration
+      #  check that there is batch migration
+      if(batchNotNull){
+        # check that we haven't performed all the events
+        # if there's more events to perform, see if it's the correct time
+        while((batchIdx <= batchLen) && (batch[[batchIdx]]$time <= t1)){
           # how many go?
-          moving <- stats::rbinom(n = length(repBatch[[1]]$from), size = as.integer(state$x[repBatch[[1]]$from]), prob = repBatch[[1]]$prob)
+          moving <- rbinom(n = length(batch[[batchIdx]]$from),
+                           size = as.integer(state$x[batch[[batchIdx]]$from]),
+                           prob = batch[[batchIdx]]$prob)
           # update the state
-          state$x[repBatch[[1]]$from] <- state$x[repBatch[[1]]$from] - moving
-          state$x[repBatch[[1]]$to] <- state$x[repBatch[[1]]$to] + moving
-          repBatch <- repBatch[-1]
-        }
-      }
+          state$x[batch[[batchIdx]]$from] <- state$x[batch[[batchIdx]]$from] - moving
+          state$x[batch[[batchIdx]]$to] <- state$x[batch[[batchIdx]]$to] + moving
+
+          # increment index
+          batchIdx <- batchIdx + 1L
+        } # end while
+      } # end batch null check
 
       # record output
       retArray[i,-1,r] <- state$x

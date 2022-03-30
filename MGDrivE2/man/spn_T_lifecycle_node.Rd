@@ -4,7 +4,7 @@
 \alias{spn_T_lifecycle_node}
 \title{Make Transitions (T) For a Node (Mosquitoes only)}
 \usage{
-spn_T_lifecycle_node(spn_P, params, cube)
+spn_T_lifecycle_node(spn_P, params, cube, feqTol = 1.5e-08)
 }
 \arguments{
 \item{spn_P}{set of places produced by \code{\link{spn_P_lifecycle_node}}}
@@ -12,6 +12,8 @@ spn_T_lifecycle_node(spn_P, params, cube)
 \item{params}{a named list of parameters (see details)}
 
 \item{cube}{an inheritance cube from the \code{MGDrivE} package (e.g. \code{\link[MGDrivE]{cubeMendelian}})}
+
+\item{feqTol}{tolerance for numerical equality, default is sqrt(.Machine$double.eps)}
 }
 \value{
 a list with two elements: \code{T} contains transitions packets as lists,

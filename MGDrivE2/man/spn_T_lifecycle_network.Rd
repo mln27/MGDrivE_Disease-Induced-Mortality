@@ -4,7 +4,14 @@
 \alias{spn_T_lifecycle_network}
 \title{Make Transitions (T) For a Network (Mosquitoes only)}
 \usage{
-spn_T_lifecycle_network(spn_P, params, cube, n = NULL, m_move = NULL)
+spn_T_lifecycle_network(
+  spn_P,
+  params,
+  cube,
+  n = NULL,
+  m_move = NULL,
+  feqTol = 1.5e-08
+)
 }
 \arguments{
 \item{spn_P}{set of places produced by \code{\link{spn_P_lifecycle_network}}}
@@ -16,6 +23,8 @@ spn_T_lifecycle_network(spn_P, params, cube, n = NULL, m_move = NULL)
 \item{n}{an integer giving the number of nodes}
 
 \item{m_move}{binary adjacency matrix indicating if movement of mosquitoes between nodes is possible or not}
+
+\item{feqTol}{tolerance for numerical equality, default is sqrt(.Machine$double.eps)}
 }
 \value{
 a list with two elements: \code{T} contains transitions packets as lists,
