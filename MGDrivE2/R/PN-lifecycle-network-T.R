@@ -46,6 +46,7 @@
 #' @param cube an inheritance cube from the \code{MGDrivE} package (e.g. \code{\link[MGDrivE]{cubeMendelian}})
 #' @param n an integer giving the number of nodes
 #' @param m_move binary adjacency matrix indicating if movement of mosquitoes between nodes is possible or not
+#' @param feqTol tolerance for numerical equality, default is sqrt(.Machine$double.eps)
 #'
 #' @return a list with two elements: \code{T} contains transitions packets as lists,
 #' \code{v} is the character vector of transitions (T)
@@ -54,7 +55,8 @@
 #' @importFrom utils tail
 #'
 #' @export
-spn_T_lifecycle_network <- function(spn_P,params,cube, n = NULL, m_move = NULL){
+spn_T_lifecycle_network <- function(spn_P,params,cube, n=NULL, m_move=NULL,
+                                    feqTol=1.5e-08){
 
   stopifnot(!is.null(n) | !is.null(m_move)) # must provide at least one
 
@@ -82,7 +84,7 @@ spn_T_lifecycle_network <- function(spn_P,params,cube, n = NULL, m_move = NULL){
     # only 1 type of nodes
     T_meta[[id]] <- spn_T_mosy_lifecycle(u = u, nE = params$nE, nL = params$nL,
                                          nP = params$nP, cube = cube, node_id = id,
-                                         T_index = T_index)
+                                         T_index = T_index, feqTol = feqTol)
   } # end loop over nodes
 
   # make transition events
@@ -410,7 +412,7 @@ base_T_mosy <- function(u,nE,nL,nP,nG,g,node_id = NULL,T_index){
               "male_mort" = male_mort_tt) )
 } # end base mosy func
 
-spn_T_mosy_lifecycle <- function(u,nE,nL,nP,cube,node_id = NULL,T_index){
+spn_T_mosy_lifecycle <- function(u,nE,nL,nP,cube,node_id = NULL,T_index,feqTol){
 
   # genetic states
   g <- cube$genotypesID
@@ -420,9 +422,9 @@ spn_T_mosy_lifecycle <- function(u,nE,nL,nP,cube,node_id = NULL,T_index){
   # get most transitions
   trans <- base_T_mosy(u=u,nE=nE,nL=nL,nP=nP,nG=nG,g=g,node_id=node_id,T_index=T_index)
 
-
   # empty list to put the transitions in (X_tt is the set of transitions in this subset of the total T)
-  ovi_tt <- vector("list",sum((cube$tau * cube$ih) > 0))
+  ovi_tt_len <- sum((cube$tau * cube$ih) > 0)
+  ovi_tt <- vector("list", ovi_tt_len)
   vv <- 1
 
   # OVIPOSITION
@@ -431,7 +433,8 @@ spn_T_mosy_lifecycle <- function(u,nE,nL,nP,cube,node_id = NULL,T_index){
     for(j in 1:ovi_dims[2]){
       for(k in 1:ovi_dims[3]){
         # only make valid events (based on tau and ih)
-        if(!fequal(cube$tau[i,j,k],0) && !fequal(cube$ih[i,j,k],0)){
+        if(!fequal(x = cube$ih[i,j,k], y = 0, tol = feqTol) &&
+           !fequal(x = cube$tau[i,j,k], y = 0, tol = feqTol)){
           ovi_tt[[vv]] <- make_transition_ovi_epi(T_index,u=u,f_gen=g[i],m_gen=g[j],
                                                   o_gen=g[k],node=node_id)
           T_index <- T_index + 1
@@ -440,6 +443,13 @@ spn_T_mosy_lifecycle <- function(u,nE,nL,nP,cube,node_id = NULL,T_index){
       }
     }
   }
+
+  # check that both checks return the same thing
+  if(ovi_tt_len != (vv-1)){
+    stop(paste0("Some values of tau or ih are less than ", feqTol,
+           ".\n\tIf this is desired, please reduce feqTol"))
+  }
+
 
   # make pupae -> female emergence
   pupae_2female_tt <- vector("list",nG^2)
@@ -454,7 +464,6 @@ spn_T_mosy_lifecycle <- function(u,nE,nL,nP,cube,node_id = NULL,T_index){
       vv <- vv + 1
     }
   }
-
 
   # FEMALE MORTALITY
   female_mort_tt <- vector("list",nG^2)

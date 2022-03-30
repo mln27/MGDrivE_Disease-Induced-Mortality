@@ -57,10 +57,8 @@ theta <- list(
 # no MMR of V to W
 # no maternal deposition
 # equal parameters between males and females
-cube <- MGDrivE2::cubeSEM(pF = 0.8, qF = 0.4, rF = 0.3,
-                          aF = 0.95, bF = 0.95, cF = 0.6, dF = 0.001)
-
-
+cube <- cubeSEM(pF = 0.8, qF = 0.4, rF = 0.3,
+                aF = 0.95, bF = 0.95, cF = 0.6, dF = 0.001)
 
 
 ####################
@@ -77,17 +75,6 @@ gdEvents <- data.frame("var" = paste0("F_", cube$releaseType, "_", cube$wildType
 
 
 
-
-
-cube$genotypesID
-
-
-
-
-
-
-
-
 ####################
 ## Setup Petri Net
 ####################
@@ -95,7 +82,7 @@ cube$genotypesID
 SPN_P <- spn_P_lifecycle_node(params = theta,cube = cube)
 
 # Transitions
-SPN_T <- spn_T_lifecycle_node(spn_P = SPN_P,params = theta,cube = cube)
+SPN_T <- spn_T_lifecycle_node(spn_P = SPN_P,params = theta,cube = cube, feqTol = 1e-10)
 
 # Stoichiometry matrix
 S <- spn_S(spn_P = SPN_P, spn_T = SPN_T)
@@ -113,20 +100,6 @@ approx_hazards <- spn_hazards(spn_P = SPN_P, spn_T = SPN_T, cube = cube,
                               params = initialCons$params, type = "life",
                               log = TRUE, exact = FALSE, tol = 1e-8,
                               verbose = FALSE)
-
-
-SPN_T$T[[5569]]
-
-length(SPN_T$T)
-length(SPN_T$v)
-
-hold <- unlist(lapply(SPN_T$T, '[[', "class"))
-
-which(is.null(hold))
-
-
-
-
 
 # exact hazards for integer-valued state space
 exact_hazards <- spn_hazards(spn_P = SPN_P, spn_T = SPN_T, cube = cube,

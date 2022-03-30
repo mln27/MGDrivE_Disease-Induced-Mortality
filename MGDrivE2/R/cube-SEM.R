@@ -93,7 +93,6 @@ cubeSEM <- function(pF=1,qF=1,rF=0,
     stop("Parameters are rates.\n0 <= x <= 1")
   }
 
-
   # # Testing Probs
   # testVec <- runif(n = 19, min = 0, max = 1)
   #

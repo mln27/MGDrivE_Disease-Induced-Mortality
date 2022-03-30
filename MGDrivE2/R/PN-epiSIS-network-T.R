@@ -288,8 +288,10 @@ base_T_mosy_epi <- function(u,nE,nL,nP,nEIP,cube,node_id,T_index,epi_stages){
   # empty list to put the transitions in (X_tt is the set of transitions in this subset of the total T)
   # is this indexing right now?
   #  I think we're off by a factor of length(epi_stages)
-  ovi_tt <- vector("list",sum(cube$tau * cube$ih > 0))
+  ovi_tt_len <- sum((cube$tau * cube$ih) > 0)
+  ovi_tt <- vector("list", ovi_tt_len)
   vv <- 1
+  feqTol <- 1.5e-8
 
   # OVIPOSITION
 
@@ -299,7 +301,9 @@ base_T_mosy_epi <- function(u,nE,nL,nP,nEIP,cube,node_id,T_index,epi_stages){
     for(j in 1:ovi_dims[2]){
       for(k in 1:ovi_dims[3]){
         # only make valid events (based on tau)
-        if(!fequal(cube$tau[i,j,k],0) & !fequal(cube$ih[i,j,k],0)){
+        if(!fequal(x = cube$ih[i,j,k], y = 0, tol = feqTol) &&
+           !fequal(x = cube$tau[i,j,k], y = 0, tol = feqTol)){
+          # loop over epi stages
           for(l in 1:length(epi_stages)){
             ovi_tt[[vv]] <- make_transition_ovi_epi(T_index,u=u,f_gen=g[i],
                                                     m_gen=g[j],o_gen=g[k],
@@ -311,6 +315,17 @@ base_T_mosy_epi <- function(u,nE,nL,nP,nEIP,cube,node_id,T_index,epi_stages){
       }
     }
   }
+
+  # NOT implementing this check in the epi function.
+  #  Looking at the comment above, where our counting may be off, I don't trust
+  #  this check works properly
+  #  The fully implemented check is in spn_T_mosy_lifecycle. Parts of it are here
+  #  but they are not propagated up to users.
+  # # check that both checks return the same thing
+  # if(ovi_tt_len != (vv-1)){
+  #   stop(paste0("Some values of tau or ih are less than ", feqTol,
+  #          ".\n\tIf this is desired, please reduce PARAM"))
+  # }
 
 
   # PUPAE TRANSITIONS
