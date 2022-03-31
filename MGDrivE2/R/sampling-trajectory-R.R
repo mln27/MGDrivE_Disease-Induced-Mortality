@@ -276,6 +276,15 @@ base_events <- function(x0, events, dt){
   ##########
   # Method and Value
   ##########
+  # check method name
+  #  we only support 2 types of events currently
+  #  make sure to expand as we add new release types
+  if(!all(unique(events$method) %in% c("add","swap"))){
+    stop(paste0(unique(events$method)[!(unique(events$method) %in% c("add","swap"))],
+                " is not a recognized event method.", collapse = "\n\t"))
+  }
+
+  #  we only implemented
   # sort methods and values for method check
   sortMet <- events$method[eventOrder]
   sortVal <- events$value[eventOrder]

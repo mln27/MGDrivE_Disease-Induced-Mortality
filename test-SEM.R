@@ -29,7 +29,7 @@ library(ggplot2)
 ####################
 # number of adult female mosquitoes
 NF <- 500
-tmax <- 365
+tmax <- 365*3
 dt <- 1
 dt_stoch <- 0.1
 nReps <- 3
@@ -72,7 +72,19 @@ gdEvents <- data.frame("var" = paste0("F_", cube$releaseType, "_", cube$wildType
                        stringsAsFactors = FALSE)
 
 # SEM "releases"
+#  these are just examples, one would need to cover all genotypes
+semEvents1 <- data.frame("var" = "M_GG",
+                       "time" = 100:150,
+                       "value" = "M_HH",
+                       "method" = "swap",
+                       stringsAsFactors = FALSE)
+semEvents2 <- data.frame("var" = "F_GW_WW",
+                       "time" = 100:150,
+                       "value" = "F_HW_WW",
+                       "method" = "swap",
+                       stringsAsFactors = FALSE)
 
+events <- rbind(gdEvents,semEvents1,semEvents2)
 
 
 ####################
@@ -114,12 +126,12 @@ exact_hazards <- spn_hazards(spn_P = SPN_P, spn_T = SPN_T, cube = cube,
 # deterministic
 ODE_out <- sim_trajectory_R(x0 = initialCons$M0, tmax = tmax, dt = dt, S = S,
                             hazards = approx_hazards, sampler = "ode", method = "lsoda",
-                            events = events, verbose = FALSE)
+                            events = events, verbose = TRUE)
 
 # tau sampling
 PTS_out <- sim_trajectory_R(x0 = initialCons$M0, tmax = tmax, dt = dt, num_reps = nReps,
                             dt_stoch = dt_stoch, S = S, hazards = exact_hazards,
-                            sampler = "tau", events = events, verbose = FALSE)
+                            sampler = "tau", events = events, verbose = TRUE)
 
 
 ####################
@@ -149,10 +161,6 @@ ggplot(data = rbind(ODE_out_f, ODE_out_m)) +
 ##########
 # Stochastic
 ##########
-
-
-
-
 # summarize females/males
 PTS_out_f <- summarize_females(out = PTS_out$state, spn_P = SPN_P)
 PTS_out_m <- summarize_males(out = PTS_out$state)
