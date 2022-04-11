@@ -50,7 +50,6 @@
 #' @param aF Rate of cleavage during SEM process in females
 #' @param bF Rate of SSA during SEM process in females
 #' @param cF Rate of "V" allele formation from SSA during SEM process in females
-#' @param dF Rate of "S" vs "R" allele formation from NHEJ during SEM process in females
 #'
 #' @param mmrF Rate of MMR in females, driving allelic conversion of "V" into "W"
 #' @param mmrM Rate of MMR in males, driving allelic conversion of "V" into "W"
@@ -70,14 +69,14 @@
 #' @return Named list containing the inheritance cube, transition matrix, genotypes,
 #' wild-type allele, and all genotype-specific parameters.
 #' @export
-cubeSEMX <- function(pF=1,qF=1,rF=0,
-                     aF=1,bF=1,cF=1,dF=0,
+cubeSEMX <- function(pF=1, qF=1, rF=0,
+                     aF=1, bF=1, cF=1,
                      mmrF=0, mmrM=0,
                      pDep=0, qDep=0, rDep=0,
                      eta=NULL, phi=NULL,omega=NULL, xiF=NULL, xiM=NULL, s=NULL){
 
   ## safety checks
-  inputVec <- c(pF,qF,rF, aF,bF,cF,dF, mmrF,mmrM, pDep,qDep,rDep)
+  inputVec <- c(pF,qF,rF, aF,bF,cF, mmrF,mmrM, pDep,qDep,rDep)
   if(any(inputVec>1) || any(inputVec<0)){
     stop("Parameters are rates.\n0 <= x <= 1")
   }
@@ -174,16 +173,14 @@ cubeSEMX <- function(pF=1,qF=1,rF=0,
                'G' = c('G'=1-aF,
                        'V'=aF*bF*cF,
                        'X'=aF*bF*(1-cF),
-                       'S'=aF*(1-bF)*dF,
-                       'R'=aF*(1-bF)*(1-dF) ),
+                       'S'=aF*(1-bF) ),
                'U' = c('U'=1),
                'R' = c('R'=1),
                'V' = c('V'=1),
                'H' = c('G'=1-aF,
                        'V'=aF*bF*cF,
                        'X'=aF*bF*(1-cF),
-                       'S'=aF*(1-bF)*dF,
-                       'R'=aF*(1-bF)*(1-dF) ),
+                       'S'=aF*(1-bF) ),
                'S' = c('S'=1))
 
   ##########

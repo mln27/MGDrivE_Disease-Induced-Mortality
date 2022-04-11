@@ -50,7 +50,6 @@
 #' @param aF Rate of cleavage during SEM process in females
 #' @param bF Rate of SSA during SEM process in females
 #' @param cF Rate of "V" allele formation from SSA during SEM process in females
-#' @param dF Rate of "S" vs "R" allele formation from NHEJ during SEM process in females
 #'
 #' @param pM Rate of cleavage during GD process in males
 #' @param qM Rate of HDR during GD process in males
@@ -59,7 +58,6 @@
 #' @param aM Rate of cleavage during SEM process in males
 #' @param bM Rate of SSA during SEM process in males
 #' @param cM Rate of "V" allele formation from SSA during SEM process in males
-#' @param dM Rate of "S" vs "R" allele formation from NHEJ durin SEM process in males
 #'
 #' @param mmrF Rate of MMR in females, driving allelic conversion of "V" into "W"
 #' @param mmrM Rate of MMR in males, driving allelic conversion of "V" into "W"
@@ -79,16 +77,16 @@
 #' @return Named list containing the inheritance cube, transition matrix, genotypes,
 #' wild-type allele, and all genotype-specific parameters.
 #' @export
-cubeSEM <- function(pF=1,qF=1,rF=0,
-                    aF=1,bF=1,cF=1,dF=0,
+cubeSEM <- function(pF=1, qF=1, rF=0,
+                    aF=1, bF=1, cF=1,
                     pM=pF, qM=qF, rM=rF,
-                    aM=aF, bM=bF, cM=cF, dM=dF,
+                    aM=aF, bM=bF, cM=cF,
                     mmrF=0, mmrM=0,
                     pDep=0, qDep=0, rDep=0,
                     eta=NULL, phi=NULL,omega=NULL, xiF=NULL, xiM=NULL, s=NULL){
 
   ## safety checks
-  inputVec <- c(pF,qF,rF, aF,bF,cF,dF, pM,qM,rM, aM,bM,cM,dM, mmrF,mmrM, pDep,qDep,rDep)
+  inputVec <- c(pF,qF,rF, aF,bF,cF, pM,qM,rM, aM,bM,cM, mmrF,mmrM, pDep,qDep,rDep)
   if(any(inputVec>1) || any(inputVec<0)){
     stop("Parameters are rates.\n0 <= x <= 1")
   }
@@ -179,16 +177,14 @@ cubeSEM <- function(pF=1,qF=1,rF=0,
                'G' = c('G'=1-aF,
                        'V'=aF*bF*cF,
                        'W'=aF*bF*(1-cF),
-                       'S'=aF*(1-bF)*dF,
-                       'R'=aF*(1-bF)*(1-dF) ),
+                       'S'=aF*(1-bF) ),
                'U' = c('U'=1),
                'R' = c('R'=1),
                'V' = c('V'=1),
                'H' = c('G'=1-aF,
                        'V'=aF*bF*cF,
                        'W'=aF*bF*(1-cF),
-                       'S'=aF*(1-bF)*dF,
-                       'R'=aF*(1-bF)*(1-dF) ),
+                       'S'=aF*(1-bF) ),
                'S' = c('S'=1))
 
   ##########
@@ -228,16 +224,14 @@ cubeSEM <- function(pF=1,qF=1,rF=0,
                'G' = c('G'=1-aM,
                        'V'=aM*bM*cM,
                        'W'=aM*bM*(1-cM),
-                       'S'=aM*(1-bM)*dM,
-                       'R'=aM*(1-bM)*(1-dM) ),
+                       'S'=aM*(1-bM) ),
                'U' = c('U'=1),
                'R' = c('R'=1),
                'V' = c('V'=1),
                'H' = c('G'=1-aM,
                        'V'=aM*bM*cM,
                        'W'=aM*bM*(1-cM),
-                       'S'=aM*(1-bM)*dM,
-                       'R'=aM*(1-bM)*(1-dM) ),
+                       'S'=aM*(1-bM) ),
                'S' = c('S'=1))
 
   # only doing GD deposition - can assume that SEM is controlled and not under

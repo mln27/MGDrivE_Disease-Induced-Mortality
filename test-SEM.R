@@ -58,7 +58,7 @@ theta <- list(
 # no maternal deposition
 # equal parameters between males and females
 cube <- cubeSEM(pF = 0.8, qF = 0.4, rF = 0.3,
-                aF = 0.95, bF = 0.95, cF = 0.6, dF = 0.001)
+                aF = 0.95, bF = 0.95, cF = 0.6)
 
 
 ####################

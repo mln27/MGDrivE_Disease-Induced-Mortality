@@ -11,14 +11,12 @@ cubeSEM(
   aF = 1,
   bF = 1,
   cF = 1,
-  dF = 0,
   pM = pF,
   qM = qF,
   rM = rF,
   aM = aF,
   bM = bF,
   cM = cF,
-  dM = dF,
   mmrF = 0,
   mmrM = 0,
   pDep = 0,
@@ -45,8 +43,6 @@ cubeSEM(
 
 \item{cF}{Rate of "V" allele formation from SSA during SEM process in females}
 
-\item{dF}{Rate of "S" vs "R" allele formation from NHEJ during SEM process in females}
-
 \item{pM}{Rate of cleavage during GD process in males}
 
 \item{qM}{Rate of HDR during GD process in males}
@@ -58,8 +54,6 @@ cubeSEM(
 \item{bM}{Rate of SSA during SEM process in males}
 
 \item{cM}{Rate of "V" allele formation from SSA during SEM process in males}
-
-\item{dM}{Rate of "S" vs "R" allele formation from NHEJ durin SEM process in males}
 
 \item{mmrF}{Rate of MMR in females, driving allelic conversion of "V" into "W"}
 
