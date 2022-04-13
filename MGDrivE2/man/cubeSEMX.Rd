@@ -11,7 +11,6 @@ cubeSEMX(
   aF = 1,
   bF = 1,
   cF = 1,
-  dF = 0,
   mmrF = 0,
   mmrM = 0,
   pDep = 0,
@@ -37,8 +36,6 @@ cubeSEMX(
 \item{bF}{Rate of SSA during SEM process in females}
 
 \item{cF}{Rate of "V" allele formation from SSA during SEM process in females}
-
-\item{dF}{Rate of "S" vs "R" allele formation from NHEJ during SEM process in females}
 
 \item{mmrF}{Rate of MMR in females, driving allelic conversion of "V" into "W"}
 

@@ -81,7 +81,7 @@ cubeSEM <- function(pF=1, qF=1, rF=0,
                     aF=1, bF=1, cF=1,
                     pM=pF, qM=qF, rM=rF,
                     aM=aF, bM=bF, cM=cF,
-                    mmrF=0, mmrM=0,
+                    mmrF=0, mmrM=mmrF,
                     pDep=0, qDep=0, rDep=0,
                     eta=NULL, phi=NULL,omega=NULL, xiF=NULL, xiM=NULL, s=NULL){
 

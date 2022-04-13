@@ -18,7 +18,7 @@ cubeSEM(
   bM = bF,
   cM = cF,
   mmrF = 0,
-  mmrM = 0,
+  mmrM = mmrF,
   pDep = 0,
   qDep = 0,
   rDep = 0,

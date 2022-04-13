@@ -1,0 +1,305 @@
+###############################################################################
+#   _    _____      ______                           __
+#  | |  / <  /     / ____/  ______ _____ ___  ____  / /__
+#  | | / // /_____/ __/ | |/_/ __ `/ __ `__ \/ __ \/ / _ \
+#  | |/ // /_____/ /____>  </ /_/ / / / / / / /_/ / /  __/
+#  |___//_/     /_____/_/|_|\__,_/_/ /_/ /_/ .___/_/\___/
+#                                         /_/
+# .............................................................................
+# SEM V1 Example Script
+# Ndeffo Mbah Lab
+# Jared Bennett, jared_bennett@berkeley.edu
+#
+# 20220412
+# Initial setup.
+# This script is a parallel implementation of V1 for testing the SEM design.
+#
+#
+#
+#
+###############################################################################
+## Setup packages
+###############################################################################
+rm(list=ls());gc()
+startTime <- Sys.time()
+set.seed(1029384756)
+
+# Check that required packages are installed
+# This does not check that it's the proper version of V2!!!!
+if(!all(c('MGDrivE','MGDrivE2') %in% installed.packages()[ ,'Package']) ){
+  stop("Packages 'MGDrivE', 'MGDrivE2', and are required.")
+}
+
+
+###############################################################################
+## Experimental Setup and Paths Definition
+###############################################################################
+USER <- 1
+numRep <- 2
+numCores <- 2
+
+###############################################################################
+if(USER == 1){
+  # Jared Laptop
+  baseOut<-'~/Desktop/OUTPUT/MGDrivE'
+}else if(USER == 2){
+  # ??
+  baseOut<-''
+}else{
+  warning('invalid user!')
+}
+
+repNames <- formatC(x = 1:numRep, width = 3, format = 'd', flag = '0')
+
+
+###############################################################################
+## Inputs
+###############################################################################
+########################################
+## Raw Inputs
+########################################
+simTime <- 10*365
+sampTime <- 1
+releaseStart <- 20
+releaseInt <- 7
+
+# default bio parameters
+bioParameters <- list(betaK=20, tEgg=5, tLarva=6, tPupa=4, popGrowth=1.175, muAd=0.09)
+
+# sweep over release number and size
+totPopSize <- 10000
+
+# sweep over migration rates - these are lifetime rates
+migRates <- c(0.01)
+numPatch <- 1
+patchSet <- 1:(numPatch-1)
+
+# batch migration is disabled by setting the probability to 0
+# This is required because of the stochastic simulations, but doesn't make sense
+#  in a deterministic simulation.
+batchMigration <- MGDrivE::basicBatchMigration(batchProbs=0,
+                                               sexProbs=c(.5,.5),
+                                               numPatches=numPatch)
+
+
+########################################
+## Sweeps
+########################################
+# Setup desired parameter ranges here
+#  This then creates a dataframe with every combination
+
+# sweep over cube changing parameters
+#  pF:
+#  qF:
+#  rF:
+#  aF:
+#  bF:
+#  cF:
+#  mmrF:
+#  pDep:
+#  qDep:
+#  rDep:
+#  numRel: number of releases
+#  sizeRel: size of releases, as a percentage of total population * totPopSize
+paramCombo <- as.matrix(expand.grid('pF' = c(0.9,0.95),
+                                    'qF' = c(0.9,0.95),
+                                    'rF' = c(0.05, 0.1),
+                                    'aF' = c(0.9,0.95),
+                                    'bF' = c(0.9,0.95),
+                                    'cF' = c(0.9,0.95),
+                                    'mmrF' = 0.05,
+                                    'pDep' = 0.00,
+                                    'qDep' = 0.00,
+                                    'rDep' = 0.00,
+                                    'numRel' = seq.int(from = 0, to = 5, by = 1),
+                                    'sizeRel' = c(0.1)* totPopSize ))
+
+numPC <- NROW(paramCombo)
+
+
+###############################################################################
+### Gene Drive
+###############################################################################
+# get initial time
+startTimeDrive <- Sys.time()
+
+#############################################################################
+### Migration
+#############################################################################
+for(mR in migRates){
+  # get initial time
+  startTimeLand <- Sys.time()
+
+  # moveMat
+  if(numPatch==1){
+    # single-patch
+    moveMat <- matrix(data = 1, nrow = numPatch, ncol = numPatch)
+  } else {
+    # multiple patches, connected in a line
+    # convert lifetime rate to daily rate
+    dmR <- 1-(1-mR)^(bioParameters$muAd)
+    # setup movement matrix
+    moveMat <- matrix(data = 0, nrow = numPatch, ncol = numPatch)
+    moveMat[cbind(patchSet, patchSet+1)] <- dmR
+    moveMat[cbind(patchSet+1, patchSet)] <- dmR
+    diag(moveMat) <- 1 - rowSums(moveMat)
+  }
+
+  # build output directories names
+  mRName <- formatC(x = mR*totPopSize, width = 3, format = 'd', flag = '0')
+  outDir <- file.path(baseOut, mRName)
+
+  # create base directory
+  if(!dir.exists(outDir)){ dir.create(path = outDir, recursive = TRUE) }
+
+
+  ###############################################################################
+  ### Run Experiments
+  ###############################################################################
+  # Setup the cluster
+  #  have to restart each time to validate changed objects
+  #  https://www.r-bloggers.com/2015/06/identifying-the-os-from-r/
+  if(Sys.info()[['sysname']] == "Windows"){
+    # windows can't run fork clusters
+    #  it has to use sockets
+    cl <- parallel::makePSOCKcluster(names = numCores)
+
+    # load libraries on each socket
+    #  if we call using package::function(), this is unnecessary
+    # parallel::clusterEvalQ(cl = cl, expr = {library(MGDrivE2)})
+
+    # export required objects to each socket
+    parallel::clusterExport(
+      cl = cl,
+      varlist = c("outDir", "paramCombo","repNames",
+                  "moveMat", # release stuff do here
+                  "simTime", "sampTime","bioParameters","totPopSize",
+                  "batchMigration",)
+    )
+
+  } else {
+    # *nix systems
+    # Sys.info() does distuinguish Linux vs Mac, but we don't care for clusters
+    # no copying, no memory issues!
+    cl <- parallel::makeForkCluster(nnodes = numCores)
+
+  }
+
+  # Set parallel seed
+  parallel::clusterSetRNGStream(cl = cl, iseed = sample(x = (-.Machine$integer.max):.Machine$integer.max,
+                                                        size = 1, replace = FALSE))
+
+
+  # Run
+  parallel::clusterApplyLB(cl = cl, x = 1:numPC, fun = function(x){
+
+    ####################
+    # Folders
+    ####################
+    runFolders <- file.path(outDir,
+                            paste0(c(formatC(x = paramCombo[x,c('pF','qF','rF','aF','bF','cF','mmrF','pDep','qDep','rDep')]*1000,
+                                             width = 4, format = 'd', flag = '0'),
+                                     formatC(x = paramCombo[[x,'numRel']], width = 2, format = 'd', flag = '0'),
+                                     formatC(x = paramCombo[[x,'sizeRel']], width = 4, format = 'd', flag = '0')),
+                                   collapse = '_'),
+                            repNames)
+
+    # make folders
+    for(i in runFolders){ dir.create(path = i, recursive = TRUE) }
+
+    ####################
+    # Build cube
+    ####################
+    # equal parameters between males and females
+    cube <- MGDrivE2::cubeSEM(pF = paramCombo[[x,'pF']], qF = paramCombo[[x,'qF']], rF = paramCombo[[x,'rF']],
+                    aF = paramCombo[[x,'aF']], bF = paramCombo[[x,'bF']], cF = paramCombo[[x,'cF']],
+                    mmrF = paramCombo[[x,'mmrF']],
+                    pDep = paramCombo[[x,'pDep']], qDep = paramCombo[[x,'qDep']], rDep = paramCombo[[x,'rDep']])
+
+
+
+
+
+
+
+
+    ####################
+    # Releases
+    ####################
+    patchReleases <- replicate(n=NROW(moveMat),
+                               expr={list(maleReleases=NULL, femaleReleases=NULL,
+                                          eggReleases=NULL, matedFemaleReleases=NULL,
+                                          iSpray=NULL, smSpray=NULL)},
+                               simplify=FALSE )
+
+    # generate releases at the specified times
+    # safety for when there are no releases
+    # if(paramCombo[x,'numRel'] !=0){
+    #   patchReleases[[1]]$maleReleases <- MGDrivE::generateReleaseVector(driveCube = cube,
+    #                                                                     releasesParameters = list('releasesStart'=releaseStart,
+    #                                                                                               'releasesNumber'=paramCombo[x,'numRel'],
+    #                                                                                               'releasesInterval'=releaseInt,
+    #                                                                                               'releaseProportion'=paramCombo[x,'sizeRel']))
+    # }
+
+
+
+
+
+
+
+
+    ####################
+    # Parameters
+    ####################
+    netPar <- MGDrivE::parameterizeMGDrivE(runID=1, simTime=simTime, sampTime = sampTime, nPatch=NROW(moveMat),
+                                           beta=bioParameters$betaK, muAd=bioParameters$muAd,
+                                           popGrowth=bioParameters$popGrowth, tEgg=bioParameters$tEgg,
+                                           tLarva=bioParameters$tLarva, tPupa=bioParameters$tPupa,
+                                           AdPopEQ=totPopSize, inheritanceCube = cube)
+
+    ####################
+    # Run
+    ####################
+    # set MGDrivE to run stochastic
+    MGDrivE::setupMGDrivE(stochasticityON = TRUE, verbose = FALSE)
+
+    # build network
+    MGDrivESim <- MGDrivE::Network$new(params=netPar,
+                                       driveCube=cube,
+                                       patchReleases=patchReleases,
+                                       migrationMale=moveMat,
+                                       migrationFemale=moveMat,
+                                       migrationBatch=batchMigration,
+                                       directory=runFolders,
+                                       verbose = FALSE)
+    # run
+    MGDrivESim$multRun(verbose = FALSE)
+
+    ####################
+    # Analyze
+    ####################
+    # First, split output by patch
+    # Second, aggregate females by their mate choice
+    for(i in 1:numRep){
+      MGDrivE::splitOutput(readDir = runFolders[i], remFile = TRUE, verbose = FALSE)
+      MGDrivE::aggregateFemales(readDir = runFolders[i], genotypes = cube$genotypesID,
+                                remFile = TRUE, verbose = FALSE)
+    }
+
+    gc()
+
+  }) # end cluster apply
+
+  # stop cluster
+  parallel::stopCluster(cl)
+
+  # print time it took
+  print(paste0('  Sims: ', capture.output(difftime(time1 = Sys.time(), time2 = startTimeLand))))
+
+
+}# end loop over migration rates
+
+# print time it took
+print(paste0('Total: ', capture.output(difftime(time1 = Sys.time(), time2 = startTime))))
+

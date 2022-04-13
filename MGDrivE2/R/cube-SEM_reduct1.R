@@ -69,7 +69,7 @@ cubeSEMreduct1 <- function(pF=1,
                            aF=1, cF=1,
                            pM=pF,
                            aM=aF, cM=cF,
-                           mmrF=0, mmrM=0,
+                           mmrF=0, mmrM=mmrF,
                            pDep=0,
                            eta=NULL, phi=NULL,omega=NULL, xiF=NULL, xiM=NULL, s=NULL){
 

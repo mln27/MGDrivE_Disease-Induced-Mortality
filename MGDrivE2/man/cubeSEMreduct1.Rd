@@ -12,7 +12,7 @@ cubeSEMreduct1(
   aM = aF,
   cM = cF,
   mmrF = 0,
-  mmrM = 0,
+  mmrM = mmrF,
   pDep = 0,
   eta = NULL,
   phi = NULL,

@@ -14,7 +14,7 @@ cubeSEMreduct2(
   bM = bF,
   cM = cF,
   mmrF = 0,
-  mmrM = 0,
+  mmrM = mmrF,
   pDep = 0,
   eta = NULL,
   phi = NULL,
