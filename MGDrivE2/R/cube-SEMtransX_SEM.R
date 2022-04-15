@@ -13,15 +13,17 @@
 #
 ###############################################################################
 
-#' Inheritance Cube: ReMEDE (REpeat Mediated Excision of a Drive Element) in Trans
+#' Inheritance Cube: X-Linked ReMEDE (REpeat Mediated Excision of a Drive Element) in Trans
 #'
 #' This is the second ReMEDE system put forth by \href{GETLINKWHENEXISTS!!!}{Chennuri and Myles}.
 #' It's another realization of \href{https://doi.org/10.1098/rstb.2019.0804}{biodegradable gene drives},
-#' where the pieces exist as independently-recombining constructs that only act
+#' where the pieces exist as indeptendently-recombining constructs that only act
 #' when in the presence of each other.
 #'
-#' This construct consists of two autosomal target sites. The first site carries
-#' gRNA and Cas9 for homing and removal of the SEM site. The second site consists
+#' This construct consists of one autosomal target site and one X-linked target site.
+#' The first site, on an autosomal chromosome, carries
+#' gRNA and Cas9 for homing and removal of the SEM site. The second site, on
+#' the X chromosome, consists
 #' of an endonuclease targeting the Cas9 site. Both sites contain direct repeats
 #' to induce SSA upon chromosome damage. There are 6 possible alleles at the first site:
 #' \itemize{
@@ -33,21 +35,24 @@
 #'  \item S: Active GD with non-targetable SEM site
 #' }
 #'
-#' There are 4 possible alleles at the second site:
+#' There are 5 possible alleles at the second, X-linked target site:
 #' \itemize{
-#'  \item W: Wild-type allele
+#'  \item X: Wild-type X chromosome
 #'  \item H: Active SEM element
 #'  \item R: High-cost resistant allele, non-targetable by GD (R2 in other literature)
 #'  \item E: "wild-type", produce of GD, non-targetbale by GD
+#'  \item Y: Y-chromosome, non-targetable
 #' }
 #'
-#' This provides a total genotype count of 210. Genotypes are written (site 1)(site 1)(site 2)(site 2).
-#' Therefore, a genotype of WWHR would be completely wild-type at the first locus,
+#' This provides a total genotype count of 294, however, there are only 210 viable
+#' female genotypes and 84 viable male genotypes. Genotypes are written (site 1)(site 1)(site 2)(site 2),
+#' where "site 1" is on an autosome and "site 2" is X-linked.
+#' Therefore, a genotype of WWHR would be female and completely wild-type at the first locus,
 #' and at the second locus a compound heterozygote with the SEM allele and a
 #' costly resistance allele.
 #'
 #' "V" and "E" alleles are simply minor alleles with the same protein sequence as the
-#' major allele at their respective loci, "W". There is the possibility for allelic
+#' major allele at their respective loci, "W" or "X". There is the possibility for allelic
 #' conversion of the "V" allele into the "W" allele by mechanisms such as MMR.
 #'
 #' This drive has male and female specific GD and SEM parameters, as well as
@@ -109,6 +114,7 @@
 #' @param xDep Rate of cleavage of SEM allele from GD during maternal deposition
 #' @param yDep Rate of SSA of SEM allele from GD during maternal deposition
 #'
+#'
 #' @param eta Genotype-specific mating fitness
 #' @param phi Genotype-specific sex ratio at emergence
 #' @param omega Genotype-specific multiplicative modifier of adult mortality
@@ -120,17 +126,17 @@
 #' @return Named list containing the inheritance cube, transition matrix, genotypes,
 #' wild-type allele, and all genotype-specific parameters.
 #' @export
-cubeSEMtrans <- function(pF=1, qF=1, rF=0,
-                         aF=1, bF=1, cF=1,
-                         xF=1, yF=1,
-                         pM=pF, qM=qF, rM=rF,
-                         aM=aF, bM=bF, cM=cF,
-                         xM=xF, yM=yF,
-                         mmrF=0, mmrM=mmrF,
-                         pDep=0, qDep=0, rDep=0,
-                         aDep=0, bDep=0, cDep=0,
-                         xDep=0, yDep=0,
-                         eta=NULL, phi=NULL,omega=NULL, xiF=NULL, xiM=NULL, s=NULL){
+cubeSEMtransX_SEM <- function(pF=1, qF=1, rF=0,
+                              aF=1, bF=1, cF=1,
+                              xF=1, yF=1,
+                              pM=pF, qM=qF, rM=rF,
+                              aM=aF, bM=bF, cM=cF,
+                              xM=xF, yM=yF,
+                              mmrF=0, mmrM=mmrF,
+                              pDep=0, qDep=0, rDep=0,
+                              aDep=0, bDep=0, cDep=0,
+                              xDep=0, yDep=0,
+                              eta=NULL, phi=NULL,omega=NULL, xiF=NULL, xiM=NULL, s=NULL){
 
   ## safety checks
   inputVec <- c(pF,qF,rF, aF,bF,cF, xF,yF,
@@ -140,7 +146,6 @@ cubeSEMtrans <- function(pF=1, qF=1, rF=0,
   if(any(inputVec>1) || any(inputVec<0)){
     stop("Parameters are rates.\n0 <= x <= 1")
   }
-
 
   # # Testing Probs
   # testVec <- runif(n = 26, min = 0, max = 1)
@@ -162,7 +167,7 @@ cubeSEMtrans <- function(pF=1, qF=1, rF=0,
   #############################################################################
   # # List of possible alleles
   # alleles <- list(c('W', 'G', 'U', 'R', 'V', 'S'),
-  #                 c('W', 'H', 'R', 'E') )
+  #                 c('X', 'H', 'R', 'E', 'Y') )
   # # Generate alleles
   # alleleList <- vector(mode = "list", length = length(alleles))
   # for(i in 1:length(alleles)){
@@ -180,28 +185,42 @@ cubeSEMtrans <- function(pF=1, qF=1, rF=0,
   # openAlleles <- expand.grid(alleleList, KEEP.OUT.ATTRS = FALSE, stringsAsFactors = FALSE)
   # # Paste them together. This is the final list of genotypes
   # genotypes <- file.path(openAlleles[,1], openAlleles[,2], fsep = "")
+  # # get female genotypes
+  # genoF <- grep(pattern = "Y", x = genotypes, value = TRUE, invert = TRUE)
+  # # get viable male genotypes
+  # genoM <- grep(pattern = "YY",
+  #               x = grep(pattern = "Y", x = genotypes, value = TRUE, invert = FALSE),
+  #               value = TRUE, invert = TRUE)
 
-  genotypes <- c('WWWW','GWWW','UWWW','RWWW','VWWW','SWWW','GGWW','GUWW','GRWW','GVWW',
-                 'GSWW','UUWW','RUWW','UVWW','SUWW','RRWW','RVWW','RSWW','VVWW','SVWW',
-                 'SSWW','WWHW','GWHW','UWHW','RWHW','VWHW','SWHW','GGHW','GUHW','GRHW',
-                 'GVHW','GSHW','UUHW','RUHW','UVHW','SUHW','RRHW','RVHW','RSHW','VVHW',
-                 'SVHW','SSHW','WWRW','GWRW','UWRW','RWRW','VWRW','SWRW','GGRW','GURW',
-                 'GRRW','GVRW','GSRW','UURW','RURW','UVRW','SURW','RRRW','RVRW','RSRW',
-                 'VVRW','SVRW','SSRW','WWEW','GWEW','UWEW','RWEW','VWEW','SWEW','GGEW',
-                 'GUEW','GREW','GVEW','GSEW','UUEW','RUEW','UVEW','SUEW','RREW','RVEW',
-                 'RSEW','VVEW','SVEW','SSEW','WWHH','GWHH','UWHH','RWHH','VWHH','SWHH',
-                 'GGHH','GUHH','GRHH','GVHH','GSHH','UUHH','RUHH','UVHH','SUHH','RRHH',
-                 'RVHH','RSHH','VVHH','SVHH','SSHH','WWHR','GWHR','UWHR','RWHR','VWHR',
-                 'SWHR','GGHR','GUHR','GRHR','GVHR','GSHR','UUHR','RUHR','UVHR','SUHR',
-                 'RRHR','RVHR','RSHR','VVHR','SVHR','SSHR','WWEH','GWEH','UWEH','RWEH',
-                 'VWEH','SWEH','GGEH','GUEH','GREH','GVEH','GSEH','UUEH','RUEH','UVEH',
-                 'SUEH','RREH','RVEH','RSEH','VVEH','SVEH','SSEH','WWRR','GWRR','UWRR',
-                 'RWRR','VWRR','SWRR','GGRR','GURR','GRRR','GVRR','GSRR','UURR','RURR',
-                 'UVRR','SURR','RRRR','RVRR','RSRR','VVRR','SVRR','SSRR','WWER','GWER',
-                 'UWER','RWER','VWER','SWER','GGER','GUER','GRER','GVER','GSER','UUER',
-                 'RUER','UVER','SUER','RRER','RVER','RSER','VVER','SVER','SSER','WWEE',
-                 'GWEE','UWEE','RWEE','VWEE','SWEE','GGEE','GUEE','GREE','GVEE','GSEE',
-                 'UUEE','RUEE','UVEE','SUEE','RREE','RVEE','RSEE','VVEE','SVEE','SSEE')
+  genoF <- c('WWXX','GWXX','UWXX','RWXX','VWXX','SWXX','GGXX','GUXX','GRXX','GVXX','GSXX',
+             'UUXX','RUXX','UVXX','SUXX','RRXX','RVXX','RSXX','VVXX','SVXX','SSXX','WWHX',
+             'GWHX','UWHX','RWHX','VWHX','SWHX','GGHX','GUHX','GRHX','GVHX','GSHX','UUHX',
+             'RUHX','UVHX','SUHX','RRHX','RVHX','RSHX','VVHX','SVHX','SSHX','WWRX','GWRX',
+             'UWRX','RWRX','VWRX','SWRX','GGRX','GURX','GRRX','GVRX','GSRX','UURX','RURX',
+             'UVRX','SURX','RRRX','RVRX','RSRX','VVRX','SVRX','SSRX','WWEX','GWEX','UWEX',
+             'RWEX','VWEX','SWEX','GGEX','GUEX','GREX','GVEX','GSEX','UUEX','RUEX','UVEX',
+             'SUEX','RREX','RVEX','RSEX','VVEX','SVEX','SSEX','WWHH','GWHH','UWHH','RWHH',
+             'VWHH','SWHH','GGHH','GUHH','GRHH','GVHH','GSHH','UUHH','RUHH','UVHH','SUHH',
+             'RRHH','RVHH','RSHH','VVHH','SVHH','SSHH','WWHR','GWHR','UWHR','RWHR','VWHR',
+             'SWHR','GGHR','GUHR','GRHR','GVHR','GSHR','UUHR','RUHR','UVHR','SUHR','RRHR',
+             'RVHR','RSHR','VVHR','SVHR','SSHR','WWEH','GWEH','UWEH','RWEH','VWEH','SWEH',
+             'GGEH','GUEH','GREH','GVEH','GSEH','UUEH','RUEH','UVEH','SUEH','RREH','RVEH',
+             'RSEH','VVEH','SVEH','SSEH','WWRR','GWRR','UWRR','RWRR','VWRR','SWRR','GGRR',
+             'GURR','GRRR','GVRR','GSRR','UURR','RURR','UVRR','SURR','RRRR','RVRR','RSRR',
+             'VVRR','SVRR','SSRR','WWER','GWER','UWER','RWER','VWER','SWER','GGER','GUER',
+             'GRER','GVER','GSER','UUER','RUER','UVER','SUER','RRER','RVER','RSER','VVER',
+             'SVER','SSER','WWEE','GWEE','UWEE','RWEE','VWEE','SWEE','GGEE','GUEE','GREE',
+             'GVEE','GSEE','UUEE','RUEE','UVEE','SUEE','RREE','RVEE','RSEE','VVEE','SVEE',
+             'SSEE')
+  genoM <- c('WWXY','GWXY','UWXY','RWXY','VWXY','SWXY','GGXY','GUXY','GRXY','GVXY','GSXY',
+             'UUXY','RUXY','UVXY','SUXY','RRXY','RVXY','RSXY','VVXY','SVXY','SSXY','WWHY',
+             'GWHY','UWHY','RWHY','VWHY','SWHY','GGHY','GUHY','GRHY','GVHY','GSHY','UUHY',
+             'RUHY','UVHY','SUHY','RRHY','RVHY','RSHY','VVHY','SVHY','SSHY','WWRY','GWRY',
+             'UWRY','RWRY','VWRY','SWRY','GGRY','GURY','GRRY','GVRY','GSRY','UURY','RURY',
+             'UVRY','SURY','RRRY','RVRY','RSRY','VVRY','SVRY','SSRY','WWEY','GWEY','UWEY',
+             'RWEY','VWEY','SWEY','GGEY','GUEY','GREY','GVEY','GSEY','UUEY','RUEY','UVEY',
+             'SUEY','RREY','RVEY','RSEY','VVEY','SVEY','SSEY')
+  genotypes <- c(genoF, genoM)
 
 
   #############################################################################
@@ -225,7 +244,7 @@ cubeSEMtrans <- function(pF=1, qF=1, rF=0,
                              'U' = c('U'=1),
                              'R' = c('R'=1),
                              'V' = c('W'=mmrF, 'V'=1-mmrF)),
-                'two' = list('W'= c('W'=1),
+                'two' = list('X'= c('X'=1),
                              'H'= c('H'=1),
                              'R'= c('R'=1),
                              'E'= c('R'=1)) )
@@ -257,7 +276,7 @@ cubeSEMtrans <- function(pF=1, qF=1, rF=0,
                             'R' = c('R'=1),
                             'V' = c('V'=1),
                             'S' = c('S'=1)),
-               'two' = list('W' = c('W'=1),
+               'two' = list('X' = c('X'=1),
                             'H' = c('H'=1-xF,
                                     'R'=xF*(1-yF),
                                     'E'=xF*yF),
@@ -272,10 +291,11 @@ cubeSEMtrans <- function(pF=1, qF=1, rF=0,
                              'U' = c('U'=1),
                              'R' = c('R'=1),
                              'V' = c('W'=mmrM, 'V'=1-mmrM)),
-                'two' = list('W'= c('W'=1),
+                'two' = list('X'= c('X'=1),
                              'H'= c('H'=1),
                              'R'= c('R'=1),
-                             'E'= c('R'=1)) )
+                             'E'= c('R'=1),
+                             'Y'= c('Y'=1)) )
 
   # assume that G and S are equally competent at homing
   gdM <- list('W' = list('G' = c('W'=1-pM,
@@ -304,12 +324,13 @@ cubeSEMtrans <- function(pF=1, qF=1, rF=0,
                             'R' = c('R'=1),
                             'V' = c('V'=1),
                             'S' = c('S'=1)),
-               'two' = list('W' = c('W'=1),
+               'two' = list('X' = c('X'=1),
                             'H' = c('H'=1-xM,
                                     'R'=xM*(1-yM),
                                     'E'=xM*yM),
                             'R' = c('R'=1),
-                            'E' = c('E'=1)) )
+                            'E' = c('E'=1),
+                            'Y' = c('Y'=1)) )
 
   # Repair at the first locus depends on the allele and type of deposition
   #  1 - if the mother deposits GD and the male has a 'W' allele there, we have
@@ -377,7 +398,8 @@ cubeSEMtrans <- function(pF=1, qF=1, rF=0,
   #  build and use a similarly shaped list.
   # This is a 1-level list, because we only worry about the "H" allele from the
   #  male, and subset the "correct" female allele for pairing.
-  dep2 <- list('W' = c('H'=1-xDep,
+  #  This is why there's no "Y" allele here - females don't have one.
+  dep2 <- list('X' = c('H'=1-xDep,
                        'E'=xDep*yDep,
                        'R'=xDep*(1-yDep)),
                'H' = c('H'=1-xDep,
@@ -396,7 +418,9 @@ cubeSEMtrans <- function(pF=1, qF=1, rF=0,
   ## Fill transition matrix
   #############################################################################
   # Use this many times down below
-  numGen <- length(genotypes)
+  numGenF <- length(genoF)
+  numGenM <- length(genoM)
+  numGen <- numGenF + numGenM
 
   # Create transition matrix to fill
   tMatrix <- array(data = 0,
@@ -407,7 +431,7 @@ cubeSEMtrans <- function(pF=1, qF=1, rF=0,
   #############################################################################
   ## Loop over all matings, female outer loop
   #############################################################################
-  for(fi in 1:numGen){
+  for(fi in 1:numGenF){
     # Female loop
     # Split genotype into alleles
     fSplit <- strsplit(x = genotypes[fi], split = "", useBytes = TRUE)[[1]]
@@ -476,7 +500,7 @@ cubeSEMtrans <- function(pF=1, qF=1, rF=0,
     ###########################################################################
     ## Male loop. This is the inner loop
     ###########################################################################
-    for(mi in 1:numGen){
+    for(mi in (1:numGenM + numGenF)){
       # Male loop
       # Split genotype into alleles
       mSplit <- strsplit(x = genotypes[mi], split = "", useBytes = TRUE)[[1]]
@@ -485,7 +509,7 @@ cubeSEMtrans <- function(pF=1, qF=1, rF=0,
       semScoreM <- any("H" == mSplit)
       gScoreM <- any("G" == mSplit) # for deposition later
       gdScoreM <- gScoreM || any("S" == mSplit)
-      wScoreM <- any("W" == mSplit[1:2]) # for deposition later
+      wScoreM <- any("W" == mSplit) # for deposition later, W only occurs in the first locus
 
 
       ##########
@@ -808,20 +832,21 @@ cubeSEMtrans <- function(pF=1, qF=1, rF=0,
   modifiers = cubeModifiers(gtype = genotypes, eta = eta, phi = phi,
                             omega = omega, xiF = xiF, xiM = xiM, s = s)
 
+
   ## Put everything into a labeled list to return
   return(list(
     ih = tMatrix,
     tau = viabilityMask,
     genotypesID = genotypes,
     genotypesN = numGen,
-    wildType = "WWWW",
+    wildType = c('WWXX','WWXY'),
     eta = modifiers$eta,
     phi = modifiers$phi,
     omega = modifiers$omega,
     xiF = modifiers$xiF,
     xiM = modifiers$xiM,
     s = modifiers$s,
-    releaseType = "GGWW"
+    releaseType = 'GGXY'
   ))
 
 }

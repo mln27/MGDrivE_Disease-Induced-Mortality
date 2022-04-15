@@ -234,8 +234,10 @@ cubeModifiers <- function(gtype, eta = NULL, phi = NULL, omega = NULL,
     etaO[cbind(fGeno,mGeno)] <- weight
 
   } else {
-    stop("eta is incorrectly formatted.\n
-         Check the examples or set as NULL for default behaviour.")
+    stop("eta is incorrectly formatted, please supply one of the following.\n
+         1) Set as NULL for default behaviour.\n
+         2) Supply a list of length 2 vectors, where vectors are c(maleGeno, matingWeight).\n
+         3) Supply a list of length 3 vectors, where vectors are c(femaleGeno, maleGeno, matingWeight)")
   }
 
   # return named list

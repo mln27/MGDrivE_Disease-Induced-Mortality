@@ -42,6 +42,24 @@
 #' in this manner with alleles properly specified. There are no dosage effects
 #' modeled (i.e., having two GD alleles increasing or decreasing the GD rates).
 #'
+#' Gene-drive and SEM parameters (p*, q*, r*, a*, b*, c*, mmr*) are
+#' all rates and values must fall in the range of [0, 1], inclusive.
+#'
+#' Population parameters (phi, xiF, xiM) are either NULL, for default values, or
+#' named vectors, where the names must match the names in the inheritance pattern.
+#' These parameters are also rates and fall in the range of [0, 1], inclusive.
+#'
+#' Omega and s may also be NULL or named vectors, but are weights, and thus fall
+#' in the range [0, inf).
+#'
+#' Eta, the male mating weights, may be NULL for default values, or applied as a
+#' list of vectors. If the vectors are length 2 (e.g., c(maleGeno, matingWeight)),
+#' then that weight is applied to all female genotypes for that specific male genotype.
+#' Alternatively, vectors of length 3 may be supplied (e.g., c(femaleGeno, maleGeno, matingWeight)).
+#' In this case, the mating weight only applies to the specific female X male mating
+#' event. The two lists may NOT be mixed - the list must hold all length 2 or all
+#' length 3 vectors.
+#'
 #'
 #' @param pF Rate of cleavage during GD process in females
 #' @param qF Rate of HDR during GD process in females
