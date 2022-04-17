@@ -23,33 +23,31 @@
 #' This construct consists of one X-linked target site and one autosomal target site.
 #' The first site, on the X chromosome, carries
 #' gRNA and Cas9 for homing and removal of the SEM site. The second site, on
-#' an autosome, consists
-#' of an endonuclease targeting the Cas9 site. Both sites contain direct repeats
-#' to induce SSA upon chromosome damage. There are 7 possible alleles at the first site:
+#' an autosome, consists of an endonuclease targeting the Cas9 site. Both sites
+#' contain direct repeats to induce SSA upon chromosome damage. This version has
+#' been slightly reduced, removing the regular resistance alleles, but keeping the
+#' one resistance allele associated with SEM. There are 5 possible alleles at the first site:
 #' \itemize{
 #'  \item X: Wild-type X allele
 #'  \item G: Active GD (gene drive), with targetable SEM (self-elimination mechanism) site
-#'  \item U: Low-cost resistant allele, non-targetable by GD or SEM (R1 in other literature)
-#'  \item R: High-cost resistant allele, non-targetable by GD or SEM (R2 in other literature)
 #'  \item V: "wild-type", product of SEM, non-targetable by GD or SEM
 #'  \item S: Active GD with non-targetable SEM site
 #'  \item Y: Y-chromosome, non-targetable
 #' }
 #'
-#' There are 4 possible alleles at the autosomal second site:
+#' There are 3 possible alleles at the autosomal second site:
 #' \itemize{
 #'  \item W: Wild-type allele
 #'  \item H: Active SEM element
-#'  \item R: High-cost resistant allele, non-targetable by GD (R2 in other literature)
 #'  \item E: "wild-type", produce of GD, non-targetbale by GD
 #' }
 #'
-#' This provides a total genotype count of 270 in the cube, however, only 210 viable
-#' female genotypes and 60 viable male genotypes. Genotypes are written (site 1)(site 1)(site 2)(site 2),
+#' This provides a total genotype count of 84 in the cube, however, only 60 viable
+#' female genotypes and 24 viable male genotypes. Genotypes are written (site 1)(site 1)(site 2)(site 2),
 #' where "site 1" is X-linked and "site 2" is autosomally linked.
-#' Therefore, a genotype of XXHR would be female and completely wild-type at the first locus,
+#' Therefore, a genotype of XXHE would be female and completely wild-type at the first locus,
 #' and at the second locus a compound heterozygote with the SEM allele and a
-#' costly resistance allele.
+#' non-targetable wild-type equivalent allele.
 #'
 #' "V" and "E" alleles are simply minor alleles with the same protein sequence as the
 #' major allele at their respective loci, "W" or "X". There is the possibility for allelic
@@ -59,7 +57,7 @@
 #' maternal deposition for both SEM and GD elements. There are no dosage effects
 #' modeled (i.e., having two GD alleles increasing or decreasing the GD rates).
 #'
-#' Gene-drive and SEM parameters (p*, q*, r*, a*, b*, c*, x*, y*, mmr*) are
+#' Gene-drive and SEM parameters (p*, a*, b*, c*, x*, mmr*) are
 #' all rates and values must fall in the range of [0, 1], inclusive.
 #'
 #' Population parameters (phi, xiF, xiM) are either NULL, for default values, or
@@ -79,36 +77,29 @@
 #'
 #'
 #' @param pF Rate of cleavage during GD process in females
-#' @param qF Rate of HDR during GD process in females
-#' @param rF Rate of in-frame resistance generation during GD process in females
 #'
 #' @param aF Rate of cleavage during SEM process on GD allele in females
 #' @param bF Rate of SSA during SEM process on GD allele in females
 #' @param cF Rate of "V" allele formation from SSA during SEM process on GD allele in females
 #'
 #' @param xF Rate of cleavage during GD process on SEM allele in females
-#' @param yF Rate of SSA during GD process on SEM allele in females
 #'
 #' @param aM Rate of cleavage during SEM process on GD allele in males
 #' @param bM Rate of SSA during SEM process on GD allele in males
 #' @param cM Rate of "V" allele formation from SSA during SEM process on GD allele in males
 #'
 #' @param xM Rate of cleavage during GD process on SEM allele in males
-#' @param yM Rate of SSA during GD process on SEM allele in males
 #'
 #' @param mmrF Rate of MMR in females, driving allelic conversion of "V" into "W"
 #' @param mmrM Rate of MMR in males, driving allelic conversion of "V" into "W"
 #'
 #' @param pDep Rate of cleavage during maternal deposition into W allele from GD
-#' @param qDep Rate of HDR during maternal deposition into W allele from GD
-#' @param rDep Rate of in-frame resistance generation during maternal deposition into W allele from GD
 #'
 #' @param aDep Rate of cleavage during maternal deposition into G allele from SEM
 #' @param bDep Rate of SSA during maternal deposition into G allele from SEM
 #' @param cDep Rate of MMR, converting G into V, from maternal deposition from SEM
 #'
 #' @param xDep Rate of cleavage of SEM allele from GD during maternal deposition
-#' @param yDep Rate of SSA of SEM allele from GD during maternal deposition
 #'
 #' @param eta Genotype-specific mating fitness
 #' @param phi Genotype-specific sex ratio at emergence
@@ -121,22 +112,22 @@
 #' @return Named list containing the inheritance cube, transition matrix, genotypes,
 #' wild-type allele, and all genotype-specific parameters.
 #' @export
-cubeSEMtransX_GD <- function(pF=1, qF=1, rF=0,
-                             aF=1, bF=1, cF=1,
-                             xF=1, yF=1,
-                             aM=aF, bM=bF, cM=cF,
-                             xM=xF, yM=yF,
-                             mmrF=0, mmrM=mmrF,
-                             pDep=0, qDep=0, rDep=0,
-                             aDep=0, bDep=0, cDep=0,
-                             xDep=0, yDep=0,
-                             eta=NULL, phi=NULL,omega=NULL, xiF=NULL, xiM=NULL, s=NULL){
+cubeSEMtransX_GDReduct2 <- function(pF=1,
+                                    aF=1, bF=1, cF=1,
+                                    xF=1,
+                                    aM=aF, bM=bF, cM=cF,
+                                    xM=xF,
+                                    mmrF=0, mmrM=mmrF,
+                                    pDep=0,
+                                    aDep=0, bDep=0, cDep=0,
+                                    xDep=0,
+                                    eta=NULL, phi=NULL,omega=NULL, xiF=NULL, xiM=NULL, s=NULL){
 
   ## safety checks
-  inputVec <- c(pF,qF,rF, aF,bF,cF, xF,yF,
-                aM,bM,cM, xM,yM,
+  inputVec <- c(pF, aF,bF,cF, xF,
+                aM,bM,cM, xM,
                 mmrF,mmrM,
-                pDep,qDep,rDep, aDep,bDep,cDep, xDep,yDep)
+                pDep, aDep,bDep,cDep, xDep)
   if(any(inputVec>1) || any(inputVec<0)){
     stop("Parameters are rates.\n0 <= x <= 1")
   }
@@ -161,8 +152,8 @@ cubeSEMtransX_GD <- function(pF=1, qF=1, rF=0,
   ## generate genotypes
   #############################################################################
   # # List of possible alleles
-  # alleles <- list(c('X', 'G', 'U', 'R', 'V', 'S', 'Y'),
-  #                 c('W', 'H', 'R', 'E') )
+  # alleles <- list(c('X', 'G', 'V', 'S', 'Y'),
+  #                 c('W', 'H', 'E') )
   # # Generate alleles
   # alleleList <- vector(mode = "list", length = length(alleles))
   # for(i in 1:length(alleles)){
@@ -187,32 +178,15 @@ cubeSEMtransX_GD <- function(pF=1, qF=1, rF=0,
   #               x = grep(pattern = "Y", x = genotypes, value = TRUE, invert = FALSE),
   #               value = TRUE, invert = TRUE)
 
-  genoF <- c('XXWW','GXWW','UXWW','RXWW','VXWW','SXWW','GGWW','GUWW','GRWW','GVWW','GSWW',
-             'UUWW','RUWW','UVWW','SUWW','RRWW','RVWW','RSWW','VVWW','SVWW','SSWW','XXHW',
-             'GXHW','UXHW','RXHW','VXHW','SXHW','GGHW','GUHW','GRHW','GVHW','GSHW','UUHW',
-             'RUHW','UVHW','SUHW','RRHW','RVHW','RSHW','VVHW','SVHW','SSHW','XXRW','GXRW',
-             'UXRW','RXRW','VXRW','SXRW','GGRW','GURW','GRRW','GVRW','GSRW','UURW','RURW',
-             'UVRW','SURW','RRRW','RVRW','RSRW','VVRW','SVRW','SSRW','XXEW','GXEW','UXEW',
-             'RXEW','VXEW','SXEW','GGEW','GUEW','GREW','GVEW','GSEW','UUEW','RUEW','UVEW',
-             'SUEW','RREW','RVEW','RSEW','VVEW','SVEW','SSEW','XXHH','GXHH','UXHH','RXHH',
-             'VXHH','SXHH','GGHH','GUHH','GRHH','GVHH','GSHH','UUHH','RUHH','UVHH','SUHH',
-             'RRHH','RVHH','RSHH','VVHH','SVHH','SSHH','XXHR','GXHR','UXHR','RXHR','VXHR',
-             'SXHR','GGHR','GUHR','GRHR','GVHR','GSHR','UUHR','RUHR','UVHR','SUHR','RRHR',
-             'RVHR','RSHR','VVHR','SVHR','SSHR','XXEH','GXEH','UXEH','RXEH','VXEH','SXEH',
-             'GGEH','GUEH','GREH','GVEH','GSEH','UUEH','RUEH','UVEH','SUEH','RREH','RVEH',
-             'RSEH','VVEH','SVEH','SSEH','XXRR','GXRR','UXRR','RXRR','VXRR','SXRR','GGRR',
-             'GURR','GRRR','GVRR','GSRR','UURR','RURR','UVRR','SURR','RRRR','RVRR','RSRR',
-             'VVRR','SVRR','SSRR','XXER','GXER','UXER','RXER','VXER','SXER','GGER','GUER',
-             'GRER','GVER','GSER','UUER','RUER','UVER','SUER','RRER','RVER','RSER','VVER',
-             'SVER','SSER','XXEE','GXEE','UXEE','RXEE','VXEE','SXEE','GGEE','GUEE','GREE',
-             'GVEE','GSEE','UUEE','RUEE','UVEE','SUEE','RREE','RVEE','RSEE','VVEE','SVEE',
-             'SSEE')
-  genoM <- c('XYWW','GYWW','UYWW','RYWW','VYWW','SYWW','XYHW','GYHW','UYHW','RYHW','VYHW',
-             'SYHW','XYRW','GYRW','UYRW','RYRW','VYRW','SYRW','XYEW','GYEW','UYEW','RYEW',
-             'VYEW','SYEW','XYHH','GYHH','UYHH','RYHH','VYHH','SYHH','XYHR','GYHR','UYHR',
-             'RYHR','VYHR','SYHR','XYEH','GYEH','UYEH','RYEH','VYEH','SYEH','XYRR','GYRR',
-             'UYRR','RYRR','VYRR','SYRR','XYER','GYER','UYER','RYER','VYER','SYER','XYEE',
-             'GYEE','UYEE','RYEE','VYEE','SYEE')
+  genoF <- c('XXWW','GXWW','VXWW','SXWW','GGWW','GVWW','GSWW','VVWW','SVWW','SSWW','XXHW',
+             'GXHW','VXHW','SXHW','GGHW','GVHW','GSHW','VVHW','SVHW','SSHW','XXEW','GXEW',
+             'VXEW','SXEW','GGEW','GVEW','GSEW','VVEW','SVEW','SSEW','XXHH','GXHH','VXHH',
+             'SXHH','GGHH','GVHH','GSHH','VVHH','SVHH','SSHH','XXEH','GXEH','VXEH','SXEH',
+             'GGEH','GVEH','GSEH','VVEH','SVEH','SSEH','XXEE','GXEE','VXEE','SXEE','GGEE',
+             'GVEE','GSEE','VVEE','SVEE','SSEE')
+  genoM <- c('XYWW','GYWW','VYWW','SYWW','XYHW','GYHW','VYHW','SYHW','XYEW','GYEW','VYEW',
+             'SYEW','XYHH','GYHH','VYHH','SYHH','XYEH','GYEH','VYEH','SYEH','XYEE','GYEE',
+             'VYEE','SYEE')
   genotypes <- c(genoF, genoM)
 
 
@@ -234,26 +208,17 @@ cubeSEMtransX_GD <- function(pF=1, qF=1, rF=0,
   # Female
   ##########
   mendF <- list('one' = list('X' = c('X'=1),
-                             'U' = c('U'=1),
-                             'R' = c('R'=1),
                              'V' = c('X'=mmrF, 'V'=1-mmrF)),
                 'two' = list('W'= c('W'=1),
                              'H'= c('H'=1),
-                             'R'= c('R'=1),
                              'E'= c('E'=1)) )
 
   # assume that G and S are equally competent at homing
   gdF <- list('X' = list('G' = c('X'=1-pF,
-                                 'G'=pF*qF,
-                                 'U'=pF*(1-qF)*rF,
-                                 'R'=pF*(1-qF)*(1-rF)),
+                                 'G'=pF),
                          'S' = c('X'=1-pF,
-                                 'S'=pF*qF,
-                                 'U'=pF*(1-qF)*rF,
-                                 'R'=pF*(1-qF)*(1-rF)) ),
+                                 'S'=pF) ),
               'G' = c('G'=1),
-              'U' = c('U'=1),
-              'R' = c('R'=1),
               'V' = c('X'=mmrF, 'V'=1-mmrF),
               'S' = c('S'=1))
 
@@ -265,15 +230,11 @@ cubeSEMtransX_GD <- function(pF=1, qF=1, rF=0,
                                     'V'=aF*bF*cF,
                                     'X'=aF*bF*(1-cF),
                                     'S'=aF*(1-bF) ),
-                            'U' = c('U'=1),
-                            'R' = c('R'=1),
                             'V' = c('V'=1),
                             'S' = c('S'=1)),
                'two' = list('W' = c('W'=1),
                             'H' = c('H'=1-xF,
-                                    'R'=xF*(1-yF),
-                                    'E'=xF*yF),
-                            'R' = c('R'=1),
+                                    'E'=xF),
                             'E' = c('E'=1)) )
 
 
@@ -282,14 +243,11 @@ cubeSEMtransX_GD <- function(pF=1, qF=1, rF=0,
   ##########
   mendM <- list('one' = list('X' = c('X'=1),
                              'G' = c('G'=1),
-                             'U' = c('U'=1),
-                             'R' = c('R'=1),
                              'V' = c('X'=mmrM, 'V'=1-mmrM),
                              'S' = c('S'=1),
                              'Y' = c('Y'=1)),
                 'two' = list('W'= c('W'=1),
                              'H'= c('H'=1),
-                             'R'= c('R'=1),
                              'E'= c('E'=1)) )
 
   # This set assumes gdM has occurred, otherwise some probabilities will be wrong.
@@ -300,16 +258,12 @@ cubeSEMtransX_GD <- function(pF=1, qF=1, rF=0,
                                     'V'=aM*bM*cM,
                                     'X'=aM*bM*(1-cM),
                                     'S'=aM*(1-bM) ),
-                            'U' = c('U'=1),
-                            'R' = c('R'=1),
                             'V' = c('V'=1),
                             'S' = c('S'=1),
                             'Y' = c('Y'=1)),
                'two' = list('W' = c('W'=1),
                             'H' = c('H'=1-xM,
-                                    'R'=xM*(1-yM),
-                                    'E'=xM*yM),
-                            'R' = c('R'=1),
+                                    'E'=xM),
                             'E' = c('E'=1)) )
 
   # Repair at the first locus depends on the allele and type of deposition
@@ -325,41 +279,19 @@ cubeSEMtransX_GD <- function(pF=1, qF=1, rF=0,
   #  are all the same in this instance.
   # HDR does depend on the maternal allele for repair, and I have providedthe "V"
   #  allele one opportunity for alleleic conversion directly into the "W" allele.
-  dep1 <- list('X' = list('X' = c('X'=1-pDep + pDep*qDep,
-                                  'U'=pDep*(1-qDep)*rDep,
-                                  'R'=pDep*(1-qDep)*(1-rDep)),
+  dep1 <- list('X' = list('X' = c('X'=1),
                           'G' = c('X'=1-pDep,
-                                  'G'=pDep*qDep,
-                                  'U'=pDep*(1-qDep)*rDep,
-                                  'R'=pDep*(1-qDep)*(1-rDep)),
-                          'U' = c('X'=1-pDep,
-                                  'U'=pDep*qDep + pDep*(1-qDep)*rDep,
-                                  'R'=pDep*(1-qDep)*(1-rDep)),
-                          'R' = c('X'=1-pDep,
-                                  'U'=pDep*(1-qDep)*rDep,
-                                  'R'=pDep*qDep + pDep*(1-qDep)*(1-rDep)),
-                          'V' = c('X'=1-pDep + pDep*qDep*mmrM,
-                                  'V'=pDep*qDep*(1-mmrM),
-                                  'U'=pDep*(1-qDep)*rDep,
-                                  'R'=pDep*(1-qDep)*(1-rDep)),
+                                  'G'=pDep),
+                          'V' = c('X'=1-pDep + pDep*mmrM,
+                                  'V'=pDep*(1-mmrM)),
                           'S' = c('X'=1-pDep,
-                                  'S'=pDep*qDep,
-                                  'U'=pDep*(1-qDep)*rDep,
-                                  'R'=pDep*(1-qDep)*(1-rDep)) ),
+                                  'S'=pDep) ),
 
                'G' = list('X' = c('X'=aDep*bDep*(1-cDep),
                                   'G'=1-aDep,
                                   'V'=aDep*bDep*cDep,
                                   'S'=aDep*(1-bDep)),
                           'G' = c('X'=aDep*bDep*(1-cDep),
-                                  'G'=1-aDep,
-                                  'V'=aDep*bDep*cDep,
-                                  'S'=aDep*(1-bDep)),
-                          'U' = c('X'=aDep*bDep*(1-cDep),
-                                  'G'=1-aDep,
-                                  'V'=aDep*bDep*cDep,
-                                  'S'=aDep*(1-bDep)),
-                          'R' = c('X'=aDep*bDep*(1-cDep),
                                   'G'=1-aDep,
                                   'V'=aDep*bDep*cDep,
                                   'S'=aDep*(1-bDep)),
@@ -379,17 +311,11 @@ cubeSEMtransX_GD <- function(pF=1, qF=1, rF=0,
   # This is a 1-level list, because we only worry about the "H" allele from the
   #  male, and subset the "correct" female allele for pairing.
   dep2 <- list('W' = c('H'=1-xDep,
-                       'E'=xDep*yDep,
-                       'R'=xDep*(1-yDep)),
+                       'E'=xDep),
                'H' = c('H'=1-xDep,
-                       'E'=xDep*yDep,
-                       'R'=xDep*(1-yDep)),
-               'R' = c('H'=1-xDep,
-                       'E'=xDep*yDep,
-                       'R'=xDep*(1-yDep)),
+                       'E'=xDep),
                'E' = c('H'=1-xDep,
-                       'E'=xDep*yDep,
-                       'R'=xDep*(1-yDep))
+                       'E'=xDep)
                )
 
 

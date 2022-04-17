@@ -13,36 +13,36 @@
 #
 ###############################################################################
 
-#' Inheritance Cube: ReMEDE (REpeat Mediated Excision of a Drive Element)
+#' Inheritance Cube: ReMEDE (REpeat Mediated Excision of a Drive Element), Partial Reduction
 #'
 #' The ReMEDE system, put forth by \href{GETLINKWHENEXISTS!!!}{Chennuri and Myles},
 #' is a realized application of \href{https://doi.org/10.1098/rstb.2019.0804}{biodegradable gene drives}
 #' with application of \href{https://doi.org/10.1016/j.celrep.2020.107841}{Small-Molecule Control}
 #' for the removal of drive elements through induceable SSA.
 #'
-#' This construct has a
-#' single, autosomal target site that carries gRNA, Cas9, an induceable endonuclease,
-#' and is flanked by direct repeats. There are 7 possible alleles:
+#' This construct has a single, autosomal target site that carries gRNA, Cas9,
+#' an induceable endonuclease, and is flanked by direct repeats. This version has
+#' been slightly reduced, removing the regular resistance alleles, but keeping the
+#' one resistance allele associated with SEM. Therefore, there are 5 possible alleles:
 #' \itemize{
 #'  \item W: Wild-type
 #'  \item G: Active GD (gene drive), with inactive but functional SEM (self-elimination mechanism) element
-#'  \item U: Low-cost resistant allele, non-targetable by GD or SEM (R1 in other literature)
-#'  \item R: High-cost resistant allele, non-targetable by GD or SEM (R2 in other literature)
 #'  \item V: "wild-type", product of SEM, non-targetable by GD or SEM
 #'  \item H: Active GD with active SEM
 #'  \item S: Active GD with non-functional SEM
 #' }
 #'
+#' This generates 15 total possible genotypes, for both females and males.
+#'
 #' "V" alleles are simply a minor allele with the same protein sequence as the
 #' major allele, "W". There is the possibility for allelic conversion of the "V"
 #' allele into the "W" allele by mechanisms such as MMR.
 #'
-#' This drive has male and female specific GD and SEM parameters, as well as \strong{correct}
-#' maternal deposition. This is the first instance of an inheritance cube built
-#' in this manner with alleles properly specified. There are no dosage effects
+#' This drive has male and female specific GD and SEM parameters, but here are no dosage effects
 #' modeled (i.e., having two GD alleles increasing or decreasing the GD rates).
+#' Proper maternal deposition is modeled, but with no resistance alleles possible.
 #'
-#' Gene-drive and SEM parameters (p*, q*, r*, a*, b*, c*, mmr*) are
+#' Gene-drive and SEM parameters (p*, a*, b*, c*, mmr*) are
 #' all rates and values must fall in the range of [0, 1], inclusive.
 #'
 #' Population parameters (phi, xiF, xiM) are either NULL, for default values, or
@@ -62,16 +62,12 @@
 #'
 #'
 #' @param pF Rate of cleavage during GD process in females
-#' @param qF Rate of HDR during GD process in females
-#' @param rF Rate of in-frame resistance generation during GD process in females
 #'
 #' @param aF Rate of cleavage during SEM process in females
 #' @param bF Rate of SSA during SEM process in females
 #' @param cF Rate of "V" allele formation from SSA during SEM process in females
 #'
 #' @param pM Rate of cleavage during GD process in males
-#' @param qM Rate of HDR during GD process in males
-#' @param rM Rate of in-frame resistance generation during GD process in males
 #'
 #' @param aM Rate of cleavage during SEM process in males
 #' @param bM Rate of SSA during SEM process in males
@@ -81,8 +77,6 @@
 #' @param mmrM Rate of MMR in males, driving allelic conversion of "V" into "W"
 #'
 #' @param pDep Rate of cleavage during maternal deposition
-#' @param qDep Rate of HDR during maternal deposition
-#' @param rDep Rate of in-frame resistance generation during maternal deposition
 #'
 #' @param eta Genotype-specific mating fitness
 #' @param phi Genotype-specific sex ratio at emergence
@@ -95,16 +89,16 @@
 #' @return Named list containing the inheritance cube, transition matrix, genotypes,
 #' wild-type allele, and all genotype-specific parameters.
 #' @export
-cubeSEM <- function(pF=1, qF=1, rF=0,
-                    aF=1, bF=1, cF=1,
-                    pM=pF, qM=qF, rM=rF,
-                    aM=aF, bM=bF, cM=cF,
-                    mmrF=0, mmrM=mmrF,
-                    pDep=0, qDep=0, rDep=0,
-                    eta=NULL, phi=NULL,omega=NULL, xiF=NULL, xiM=NULL, s=NULL){
+cubeSEMcisReduct2 <- function(pF=1,
+                              aF=1, bF=1, cF=1,
+                              pM=pF,
+                              aM=aF, bM=bF, cM=cF,
+                              mmrF=0, mmrM=mmrF,
+                              pDep=0,
+                              eta=NULL, phi=NULL,omega=NULL, xiF=NULL, xiM=NULL, s=NULL){
 
   ## safety checks
-  inputVec <- c(pF,qF,rF, aF,bF,cF, pM,qM,rM, aM,bM,cM, mmrF,mmrM, pDep,qDep,rDep)
+  inputVec <- c(pF, aF,bF,cF, pM, aM,bM,cM, mmrF,mmrM, pDep)
   if(any(inputVec>1) || any(inputVec<0)){
     stop("Parameters are rates.\n0 <= x <= 1")
   }
@@ -113,11 +107,11 @@ cubeSEM <- function(pF=1, qF=1, rF=0,
   # testVec <- runif(n = 19, min = 0, max = 1)
   #
   # mmrF <- testVec[1]; mmrM <- testVec[2]
-  # pF <- testVec[3]; qF <- testVec[4]; rF <- testVec[5];
-  # aF <- testVec[6]; bF <- testVec[7]; cF <- testVec[8]; dF <- testVec[9];
-  # pM <- testVec[10]; qM <- testVec[11]; rM <- testVec[12];
-  # aM <- testVec[13]; bM <- testVec[14]; cM <- testVec[15]; dM <- testVec[16];
-  # pDep <- testVec[17]; qDep <- testVec[18]; rDep <- testVec[19];
+  # pF <- testVec[3];
+  # aF <- testVec[4]; bF <- testVec[5]; cF <- testVec[6];
+  # pM <- testVec[7];
+  # aM <- testVec[8]; bM <- testVec[9]; cM <- testVec[10];
+  # pDep <- testVec[11];
 
 
   #############################################################################
@@ -125,7 +119,7 @@ cubeSEM <- function(pF=1, qF=1, rF=0,
   #############################################################################
 
   # # List of possible alleles
-  # alleles <- c('W', 'G', 'U', 'R', 'V', 'H', 'S')
+  # alleles <- c('W', 'G', 'V', 'H', 'S')
   # # Generate genotypes
   # # This generates all combinations of alleles
   # hold <- as.matrix(x = expand.grid(alleles, alleles, KEEP.OUT.ATTRS = FALSE, stringsAsFactors = FALSE))
@@ -136,10 +130,9 @@ cubeSEM <- function(pF=1, qF=1, rF=0,
   # # Paste together and get unique ones only
   # genotypes <- unique(do.call(what = paste0, args = list(sortedAlleles[1, ], sortedAlleles[2, ])))
 
-  genotypes <- c('WW','GW','UW','RW','VW','HW','SW',
-                 'GG','GU','GR','GV','GH','GS','UU',
-                 'RU','UV','HU','SU','RR','RV','HR',
-                 'RS','VV','HV','SV','HH','HS','SS')
+  genotypes <- c('WW','GW','VW','HW','SW',
+                 'GG','GV','GH','GS','VV',
+                 'HV','SV','HH','HS','SS')
 
 
   #############################################################################
@@ -162,26 +155,16 @@ cubeSEM <- function(pF=1, qF=1, rF=0,
   # Female
   ##########
   mendF <- list('W' = c('W'=1),
-                'U' = c('U'=1),
-                'R' = c('R'=1),
                 'V' = c('W'=mmrF, 'V'=1-mmrF))
 
   # assume that G, H, and S are equally competent at homing
   gdF <- list('W' = list('G' = c('W'=1-pF,
-                                 'G'=pF*qF,
-                                 'U'=pF*(1-qF)*rF,
-                                 'R'=pF*(1-qF)*(1-rF)),
+                                 'G'=pF),
                          'H' = c('W'=1-pF,
-                                 'G'=pF*qF,
-                                 'U'=pF*(1-qF)*rF,
-                                 'R'=pF*(1-qF)*(1-rF)),
+                                 'G'=pF),
                          'S' = c('W'=1-pF,
-                                 'S'=pF*qF,
-                                 'U'=pF*(1-qF)*rF,
-                                 'R'=pF*(1-qF)*(1-rF)) ),
+                                 'S'=pF) ),
               'G' = c('G'=1),
-              'U' = c('U'=1),
-              'R' = c('R'=1),
               'V' = c('W'=mmrF, 'V'=1-mmrF),
               'H' = c('G'=1),
               'S' = c('S'=1))
@@ -196,8 +179,6 @@ cubeSEM <- function(pF=1, qF=1, rF=0,
                        'V'=aF*bF*cF,
                        'W'=aF*bF*(1-cF),
                        'S'=aF*(1-bF) ),
-               'U' = c('U'=1),
-               'R' = c('R'=1),
                'V' = c('V'=1),
                'H' = c('G'=1-aF,
                        'V'=aF*bF*cF,
@@ -209,26 +190,16 @@ cubeSEM <- function(pF=1, qF=1, rF=0,
   # Male
   ##########
   mendM <- list('W' = c('W'=1),
-                'U' = c('U'=1),
-                'R' = c('R'=1),
                 'V' = c('W'=mmrM, 'V'=1-mmrM))
 
   # assume that G, H, and S are equally competent at homing
   gdM <- list('W' = list('G' = c('W'=1-pM,
-                                 'G'=pM*qM,
-                                 'U'=pM*(1-qM)*rM,
-                                 'R'=pM*(1-qM)*(1-rM)),
+                                 'G'=pM),
                          'H' = c('W'=1-pM,
-                                 'G'=pM*qM,
-                                 'U'=pM*(1-qM)*rM,
-                                 'R'=pM*(1-qM)*(1-rM)),
+                                 'G'=pM),
                          'S' = c('W'=1-pM,
-                                 'S'=pM*qM,
-                                 'U'=pM*(1-qM)*rM,
-                                 'R'=pM*(1-qM)*(1-rM)) ),
+                                 'S'=pM) ),
               'G' = c('G'=1),
-              'U' = c('U'=1),
-              'R' = c('R'=1),
               'V' = c('W'=mmrM, 'V'=1-mmrM),
               'H' = c('G'=1),
               'S' = c('S'=1))
@@ -243,8 +214,6 @@ cubeSEM <- function(pF=1, qF=1, rF=0,
                        'V'=aM*bM*cM,
                        'W'=aM*bM*(1-cM),
                        'S'=aM*(1-bM) ),
-               'U' = c('U'=1),
-               'R' = c('R'=1),
                'V' = c('V'=1),
                'H' = c('G'=1-aM,
                        'V'=aM*bM*cM,
@@ -261,27 +230,13 @@ cubeSEM <- function(pF=1, qF=1, rF=0,
   #  "H", so I'll leave it out, and if we do see it, figure out why.
   # Since this is HDR dependent, I give the "V" one an opportunity for increased
   #  MMR, thereby double converting new "V" alleles on into "W" alleles
-  dep <- list('W' = c('W'=1-pDep + pDep*qDep,
-                      'U'=pDep*(1-qDep)*rDep,
-                      'R'=pDep*(1-qDep)*(1-rDep)),
+  dep <- list('W' = c('W'=1),
               'G' = c('W'=1-pDep,
-                      'G'=pDep*qDep,
-                      'U'=pDep*(1-qDep)*rDep,
-                      'R'=pDep*(1-qDep)*(1-rDep)),
-              'U' = c('W'=1-pDep,
-                      'U'=pDep*qDep + pDep*(1-qDep)*rDep,
-                      'R'=pDep*(1-qDep)*(1-rDep)),
-              'R' = c('W'=1-pDep,
-                      'U'=pDep*(1-qDep)*rDep,
-                      'R'=pDep*qDep + pDep*(1-qDep)*(1-rDep)),
-              'V' = c('W'=1-pDep + pDep*qDep*mmrM,
-                      'V'=pDep*qDep*(1-mmrM),
-                      'U'=pDep*(1-qDep)*rDep,
-                      'R'=pDep*(1-qDep)*(1-rDep)),
+                      'G'=pDep),
+              'V' = c('W'=1-pDep + pDep*mmrM,
+                      'V'=pDep*(1-mmrM)),
               'S' = c('W'=1-pDep,
-                      'S'=pDep*qDep,
-                      'U'=pDep*(1-qDep)*rDep,
-                      'R'=pDep*(1-qDep)*(1-rDep)) )
+                      'S'=pDep) )
 
 
   #############################################################################

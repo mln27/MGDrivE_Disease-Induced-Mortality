@@ -9,7 +9,7 @@
 #   ReMEDE (REpeat Mediated Excision of a Drive Element) X-Linked
 #   Jared Bennett
 #   jared_bennett@berkeley.edu
-#   March 2022
+#   April 2022
 #
 ###############################################################################
 
@@ -20,19 +20,21 @@
 #' with application of \href{https://doi.org/10.1016/j.celrep.2020.107841}{Small-Molecule Control}
 #' for the removal of drive elements through induceable SSA.
 #'
-#' This construct has a
-#' single, X-Linked target site that carries gRNA, Cas9, an induceable endonuclease,
-#' and is flanked by direct repeats. There are 8 possible alleles:
+#' This construct has a single, X-Linked target site that carries gRNA, Cas9, an
+#' induceable endonuclease, and is flanked by direct repeats. This version has
+#' been slightly reduced, removing the regular resistance alleles, but keeping the
+#' one resistance allele associated with SEM. There are 6 possible alleles:
 #' \itemize{
 #'  \item X: Wild-type X chromosome
 #'  \item G: Active GD (gene drive), with inactive but functional SEM (self-elimination mechanism) element
-#'  \item U: Low-cost resistant allele, non-targetable by GD or SEM (R1 in other literature)
-#'  \item R: High-cost resistant allele, non-targetable by GD or SEM (R2 in other literature)
 #'  \item V: "wild-type", product of SEM, non-targetable by GD or SEM
 #'  \item H: Active GD with active SEM
 #'  \item S: Active GD with non-functional SEM
 #'  \item Y: Y-chromosome, non-targetable
 #' }
+#'
+#' This provides a total genotype count of 20, however, there are only 15 viable
+#' female genotypes and 5 viable male genotypes.
 #'
 #' "V" alleles are simply a minor allele with the same protein sequence as the
 #' major allele, "W". There is the possibility for allelic conversion of the "V"
@@ -42,7 +44,7 @@
 #' maternal deposition. There are no dosage effects
 #' modeled (i.e., having two GD alleles increasing or decreasing the GD rates).
 #'
-#' Gene-drive and SEM parameters (p*, q*, r*, a*, b*, c*, mmr*) are
+#' Gene-drive and SEM parameters (p*, a*, b*, c*, mmr*) are
 #' all rates and values must fall in the range of [0, 1], inclusive.
 #'
 #' Population parameters (phi, xiF, xiM) are either NULL, for default values, or
@@ -62,8 +64,6 @@
 #'
 #'
 #' @param pF Rate of cleavage during GD process in females
-#' @param qF Rate of HDR during GD process in females
-#' @param rF Rate of in-frame resistance generation during GD process in females
 #'
 #' @param aF Rate of cleavage during SEM process in females
 #' @param bF Rate of SSA during SEM process in females
@@ -73,8 +73,6 @@
 #' @param mmrM Rate of MMR in males, driving allelic conversion of "V" into "W"
 #'
 #' @param pDep Rate of cleavage during maternal deposition
-#' @param qDep Rate of HDR during maternal deposition
-#' @param rDep Rate of in-frame resistance generation during maternal deposition
 #'
 #' @param eta Genotype-specific mating fitness
 #' @param phi Genotype-specific sex ratio at emergence
@@ -87,14 +85,14 @@
 #' @return Named list containing the inheritance cube, transition matrix, genotypes,
 #' wild-type allele, and all genotype-specific parameters.
 #' @export
-cubeSEMX <- function(pF=1, qF=1, rF=0,
-                     aF=1, bF=1, cF=1,
-                     mmrF=0, mmrM=0,
-                     pDep=0, qDep=0, rDep=0,
-                     eta=NULL, phi=NULL,omega=NULL, xiF=NULL, xiM=NULL, s=NULL){
+cubeSEMcisXreduct2 <- function(pF=1,
+                               aF=1, bF=1, cF=1,
+                               mmrF=0, mmrM=0,
+                               pDep=0,
+                               eta=NULL, phi=NULL,omega=NULL, xiF=NULL, xiM=NULL, s=NULL){
 
   ## safety checks
-  inputVec <- c(pF,qF,rF, aF,bF,cF, mmrF,mmrM, pDep,qDep,rDep)
+  inputVec <- c(pF, aF,bF,cF, mmrF,mmrM, pDep)
   if(any(inputVec>1) || any(inputVec<0)){
     stop("Parameters are rates.\n0 <= x <= 1")
   }
@@ -115,7 +113,7 @@ cubeSEMX <- function(pF=1, qF=1, rF=0,
   # # List of possible alleles
   # #  This time, I'll split male/female, so that we can tack them together at the
   # #  end. This will provide a nice organization in the resulting cube.
-  # alleles <- c('X', 'G', 'U', 'R', 'V', 'H', 'S')
+  # alleles <- c('X', 'G', 'V', 'H', 'S')
   # # Generate genotypes
   # # This generates all combinations of alleles
   # holdF <- as.matrix(x = expand.grid(alleles, alleles, KEEP.OUT.ATTRS = FALSE, stringsAsFactors = FALSE))
@@ -129,11 +127,10 @@ cubeSEMX <- function(pF=1, qF=1, rF=0,
   # genoF <- unique(do.call(what = paste0, args = list(sortedAllelesF[1, ], sortedAllelesF[2, ])))
   # genoM <- unique(do.call(what = paste0, args = list(sortedAllelesM[1, ], sortedAllelesM[2, ])))
 
-  genoF <- c('XX','GX','UX','RX','VX','HX','SX',
-             'GG','GU','GR','GV','GH','GS','UU',
-             'RU','UV','HU','SU','RR','RV','HR',
-             'RS','VV','HV','SV','HH','HS','SS')
-  genoM <- c('XY','GY','UY','RY','VY','HY','SY')
+  genoF <- c('XX','GX','VX','HX','SX',
+             'GG','GV','GH','GS','VV',
+             'HV','SV','HH','HS','SS')
+  genoM <- c('XY','GY','VY','HY','SY')
   genotypes <- c(genoF, genoM)
 
 
@@ -157,26 +154,16 @@ cubeSEMX <- function(pF=1, qF=1, rF=0,
   # Female
   ##########
   mendF <- list('X' = c('X'=1),
-                'U' = c('U'=1),
-                'R' = c('R'=1),
                 'V' = c('X'=mmrF, 'V'=1-mmrF))
 
   # assume that G, H, and S are equally competent at homing
   gdF <- list('X' = list('G' = c('X'=1-pF,
-                                 'G'=pF*qF,
-                                 'U'=pF*(1-qF)*rF,
-                                 'R'=pF*(1-qF)*(1-rF)),
+                                 'G'=pF),
                          'H' = c('X'=1-pF,
-                                 'G'=pF*qF,
-                                 'U'=pF*(1-qF)*rF,
-                                 'R'=pF*(1-qF)*(1-rF)),
+                                 'G'=pF),
                          'S' = c('X'=1-pF,
-                                 'S'=pF*qF,
-                                 'U'=pF*(1-qF)*rF,
-                                 'R'=pF*(1-qF)*(1-rF)) ),
+                                 'S'=pF) ),
               'G' = c('G'=1),
-              'U' = c('U'=1),
-              'R' = c('R'=1),
               'V' = c('X'=mmrF, 'V'=1-mmrF),
               'H' = c('G'=1),
               'S' = c('S'=1))
@@ -191,8 +178,6 @@ cubeSEMX <- function(pF=1, qF=1, rF=0,
                        'V'=aF*bF*cF,
                        'X'=aF*bF*(1-cF),
                        'S'=aF*(1-bF) ),
-               'U' = c('U'=1),
-               'R' = c('R'=1),
                'V' = c('V'=1),
                'H' = c('G'=1-aF,
                        'V'=aF*bF*cF,
@@ -205,8 +190,6 @@ cubeSEMX <- function(pF=1, qF=1, rF=0,
   ##########
   mendM <- list('X' = c('X'=1),
                 'G' = c('G'=1),
-                'U' = c('U'=1),
-                'R' = c('R'=1),
                 'V' = c('X'=mmrM, 'V'=1-mmrM),
                 'H' = c('G'=1),
                 'S' = c('S'=1),
@@ -221,27 +204,13 @@ cubeSEMX <- function(pF=1, qF=1, rF=0,
   #  "H", so I'll leave it out, and if we do see it, figure out why.
   # Since this is HDR dependent, I give the "V" one an opportunity for increased
   #  MMR, thereby double converting new "V" alleles on into "X" alleles
-  dep <- list('X' = c('X'=1-pDep + pDep*qDep,
-                      'U'=pDep*(1-qDep)*rDep,
-                      'R'=pDep*(1-qDep)*(1-rDep)),
+  dep <- list('X' = c('X'=1),
               'G' = c('X'=1-pDep,
-                      'G'=pDep*qDep,
-                      'U'=pDep*(1-qDep)*rDep,
-                      'R'=pDep*(1-qDep)*(1-rDep)),
-              'U' = c('X'=1-pDep,
-                      'U'=pDep*qDep + pDep*(1-qDep)*rDep,
-                      'R'=pDep*(1-qDep)*(1-rDep)),
-              'R' = c('X'=1-pDep,
-                      'U'=pDep*(1-qDep)*rDep,
-                      'R'=pDep*qDep + pDep*(1-qDep)*(1-rDep)),
-              'V' = c('X'=1-pDep + pDep*qDep*mmrM,
-                      'V'=pDep*qDep*(1-mmrM),
-                      'U'=pDep*(1-qDep)*rDep,
-                      'R'=pDep*(1-qDep)*(1-rDep)),
+                      'G'=pDep),
+              'V' = c('X'=1-pDep + pDep*mmrM,
+                      'V'=pDep*(1-mmrM)),
               'S' = c('X'=1-pDep,
-                      'S'=pDep*qDep,
-                      'U'=pDep*(1-qDep)*rDep,
-                      'R'=pDep*(1-qDep)*(1-rDep)) )
+                      'S'=pDep) )
 
 
   #############################################################################

@@ -228,7 +228,7 @@ cubeSEMtrans <- function(pF=1, qF=1, rF=0,
                 'two' = list('W'= c('W'=1),
                              'H'= c('H'=1),
                              'R'= c('R'=1),
-                             'E'= c('R'=1)) )
+                             'E'= c('E'=1)) )
 
   # assume that G and S are equally competent at homing
   gdF <- list('W' = list('G' = c('W'=1-pF,
@@ -275,7 +275,7 @@ cubeSEMtrans <- function(pF=1, qF=1, rF=0,
                 'two' = list('W'= c('W'=1),
                              'H'= c('H'=1),
                              'R'= c('R'=1),
-                             'E'= c('R'=1)) )
+                             'E'= c('E'=1)) )
 
   # assume that G and S are equally competent at homing
   gdM <- list('W' = list('G' = c('W'=1-pM,

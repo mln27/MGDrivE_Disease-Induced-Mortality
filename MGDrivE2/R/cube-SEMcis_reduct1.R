@@ -30,6 +30,8 @@
 #'  \item H: Active GD with active SEM
 #' }
 #'
+#' This generates 10 total possible genotypes, for both females and males.
+#'
 #' "V" alleles are simply a minor allele with the same protein sequence as the
 #' major allele, "W". There is the possibility for allelic conversion of the "V"
 #' allele into the "W" allele by mechanisms such as MMR.
@@ -83,13 +85,13 @@
 #' @return Named list containing the inheritance cube, transition matrix, genotypes,
 #' wild-type allele, and all genotype-specific parameters.
 #' @export
-cubeSEMreduct1 <- function(pF=1,
-                           aF=1, cF=1,
-                           pM=pF,
-                           aM=aF, cM=cF,
-                           mmrF=0, mmrM=mmrF,
-                           pDep=0,
-                           eta=NULL, phi=NULL,omega=NULL, xiF=NULL, xiM=NULL, s=NULL){
+cubeSEMcisReduct1 <- function(pF=1,
+                              aF=1, cF=1,
+                              pM=pF,
+                              aM=aF, cM=cF,
+                              mmrF=0, mmrM=mmrF,
+                              pDep=0,
+                              eta=NULL, phi=NULL,omega=NULL, xiF=NULL, xiM=NULL, s=NULL){
 
   ## safety checks
   inputVec <- c(pF, aF,cF, pM, aM,cM, mmrF,mmrM, pDep)

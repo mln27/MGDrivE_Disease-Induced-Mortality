@@ -17,7 +17,7 @@
 #'
 #' This is the second ReMEDE system put forth by \href{GETLINKWHENEXISTS!!!}{Chennuri and Myles}.
 #' It's another realization of \href{https://doi.org/10.1098/rstb.2019.0804}{biodegradable gene drives},
-#' where the pieces exist as indeptendently-recombining constructs that only act
+#' where the pieces exist as independently-recombining constructs that only act
 #' when in the presence of each other.
 #'
 #' This construct consists of one autosomal target site and one X-linked target site.
@@ -247,7 +247,7 @@ cubeSEMtransX_SEM <- function(pF=1, qF=1, rF=0,
                 'two' = list('X'= c('X'=1),
                              'H'= c('H'=1),
                              'R'= c('R'=1),
-                             'E'= c('R'=1)) )
+                             'E'= c('E'=1)) )
 
   # assume that G and S are equally competent at homing
   gdF <- list('W' = list('G' = c('W'=1-pF,
@@ -294,7 +294,7 @@ cubeSEMtransX_SEM <- function(pF=1, qF=1, rF=0,
                 'two' = list('X'= c('X'=1),
                              'H'= c('H'=1),
                              'R'= c('R'=1),
-                             'E'= c('R'=1),
+                             'E'= c('E'=1),
                              'Y'= c('Y'=1)) )
 
   # assume that G and S are equally competent at homing
