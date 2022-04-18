@@ -22,9 +22,11 @@
 #' To model an arbitrary number of genotypes efficiently in the same mathematical
 #' framework, we use a 3-dimensional array structure (cube) where each axis
 #' represents the following information:
-#'  * x: female adult mate genotype
-#'	* y: male adult mate genotype
-#'	* z: proportion of the offspring that inherits a given genotype (layer)
+#' \itemize{
+#'  \item x: female adult mate genotype
+#'  \item y: male adult mate genotype
+#'  \item z: proportion of the offspring that inherits a given genotype (layer)
+#'  }
 #'
 #' The cube structure gives us the flexibility to apply tensor operations to the
 #' elements within our equations, so that we can calculate the stratified population
@@ -51,18 +53,121 @@
 #' Note Note: This documentation was shamelessly stolen from MGDrivE in order
 #' to support novel cubes implemented in this package.
 #'
+#' @section Cube Parameter Description:
+#'
+#' Cubes are designed so that inheritance parameters are rates, falling between
+#' 0 and 1, inclusive (mathematically, written as [0,1]). Up to this point, this
+#' convention has been followed. It is possible, in the future, that this may
+#' be changed.
+#'
+#' There are several parameters included in all cubes, to define life-history
+#' behaviors that depend on genotype but are not directly related to the genetic
+#' inheritance of any design.
+#' \itemize{
+#'  \item phi: genotype-specific sex ratio at emergence, supplied as a named vector
+#'  of rates that fall in the range [0,1]. A value of 1 means all emerging adults
+#'  are female, a value of 0 means all will emerge as male. The default value is
+#'  0.5, half of the emerging adults will be male and the other half female.
+#'  \item omega: genotype-specific multiplicative modifier of adult mortality,
+#'  supplied as a named vector of weights that must be 0 or greater, with no
+#'  limit (mathematically, [0, inf)). There is technically a "smallest" value,
+#'  that is dependent on the population growth rate, but the setup function will
+#'  warn if that value has been crossed. A value of 1 is the default, implying a
+#'  death rate equal to the supplied one. A value of 2 would mean the a death rate
+#'  twice the provided one. Values less than one mean a reduced death rate, implying
+#'  longer life for that genotype.
+#'  \item xiF: genotype-specific female pupatory success, supplied as a named vector
+#'  of rates that fall in the range [0,1]. A value of 1 means complete success, a
+#'  value of 0 means complete failure, i.e. death.
+#'  \item xiM: genotype-specific male pupatory success, supplied as a named vector
+#'  of rates that fall in the range [0,1]. A value of 1 means complete success, a
+#'  value of 0 means complete failure, i.e. death.
+#'  \item s: genotype-specific fractional reduction(increase) in fertility, supplied
+#'  as a named vector of weights that must be 0 or greater, with no
+#'  limit (mathematically, [0, inf)). A value of 1 is the default, where the fertility
+#'  is equal to the supplied value. A value less than one means a reduced fertility,
+#'  e.g. 0.5 means the fertility is one half the value supplied. A value greater
+#'  than one means increased fertility, e.g., a value of 3 would mean this genotype
+#'  is three times as fertile.
+#'  \item eta: genotype-specific mating fitness. This parameter can be supplied
+#'  in one of two forms:
+#'   \itemize{
+#'    \item A list of length 2 vectors, where the first term is the male genotype
+#'    and the second term is the weights associated with matings between that
+#'    male and all possible females. The default weight is 1, and any genotype
+#'    not supplied will be parameterized with this value.
+#'    \item A list of length 3 vectors, where the first term is the female genotype,
+#'    the second term the male genotype, and the third term is the mating weight.
+#'    This allows fine-grained control over specific matings. Any male/female pair
+#'    not supplied receives a default value of 1.
+#'   }
+#'   As weights, all values must fall in the range [0, inf). These two lists cannot
+#'   be mixed - either all length 2 vectors, or all length 3.
+#' }
+#'
 #' @section Drive-specific Cubes:
 #'
 #' An inheritance cube in an array object that specifies inheritance probabilities
 #' (offspring genotype probability) stratified by male and female parent genotypes.
 #' MGDrivE provides the following cubes to model different gene drive systems:
-#'  * \code{\link{cubeSEM}}: Single-locus, autosomal construct implementing a self-elimination mechanism
-#'  * \code{\link{cubeSEMX}}: Single-locus, X-linked construct implementing a self-elimination mechanism
+#'  \itemize{
+#'
+#'   \item \code{Self-Elimination Mechanism in cis}: A single-locus, autosomal
+#'   construct implementing a standard CRISPR drive linked to an inducible self-elimination
+#'   mechanism. This drive exists in three versions:
+#'   \itemize{
+#'    \item \code{\link{cubeSEMcis}}: Full construct, with all resistance allele present.
+#'    \item \code{\link{cubeSEMcisReduct2}}: Slightly reduced construct, with no HDR resistance alleles.
+#'    \item \code{\link{cubeSEMcisReduct1}}: Fully reduced construct, with no resistance alleles
+#'   }
+#'
+#'  \item \code{X-Linked Self-Elimination Mechanism in cis}: A single-locus, X-linked
+#'   construct implementing a standard CRISPR drive linked to an inducible self-elimination
+#'   mechanism. This drive exists in three versions:
+#'   \itemize{
+#'    \item \code{\link{cubeSEMcisX}}: Full construct, with all resistance allele present.
+#'    \item \code{\link{cubeSEMcisXreduct2}}: Slightly reduced construct, with no HDR resistance alleles.
+#'    \item \code{\link{cubeSEMcisXreduct1}}: Fully reduced construct, with no resistance alleles
+#'   }
+#'
+#'  \item \code{Self-Elimination Mechanism in trans}: This is a two-locus,
+#'  autosomal construct implementing a standard CRISPR drive at one locus and a
+#'  constitutively active SEM construct at another. When combined, they act to remove
+#'  each other. This construct exists in three versions:
+#'   \itemize{
+#'    \item \code{\link{cubeSEMtrans}}: Full construct, with all resistance allele present.
+#'    \item \code{\link{cubeSEMtransReduct2}}: Slightly reduced construct, with no HDR resistance alleles.
+#'    \item \code{\link{cubeSEMtransReduct1}}: Fully reduced construct, with no resistance alleles
+#'   }
+#'
+#'  \item \code{X-Linked, Self-Elimination Mechanism in trans, Gene-Drive}:
+#'  This is a two-locus construct, with the gene drive mechanism on the X-chromosome
+#'  and the SEM construct on an autosomal chromosome. When combined, they act to remove
+#'  each other. This construct exists in three versions:
+#'   \itemize{
+#'    \item \code{\link{cubeSEMtransX_GD}}: Full construct, with all resistance allele present.
+#'    \item \code{\link{cubeSEMtransX_GDReduct2}}: Slightly reduced construct, with no HDR resistance alleles.
+#'    \item \code{\link{cubeSEMtransX_GDReduct1}}: Fully reduced construct, with no resistance alleles
+#'   }
+#'
+#'  \item \code{X-Linked, Self-Elimination Mechanism in trans, SEM}:
+#'  This is a two-locus construct, with the SEM mechanism on the X-chromosome
+#'  and the gene drive construct on an autosomal chromosome. When combined, they act to remove
+#'  each other. This construct exists in three versions:
+#'   \itemize{
+#'    \item \code{\link{cubeSEMtransX_SEM}}: Full construct, with all resistance allele present.
+#'    \item \code{\link{cubeSEMtransX_SEMReduct2}}: Slightly reduced construct, with no HDR resistance alleles.
+#'    \item \code{\link{cubeSEMtransX_SEMReduct1}}: Fully reduced construct, with no resistance alleles
+#'   }
+#'
+#'  }
 #'
 #' @section Functions for Cubes:
 #'
 #' We provide one auxiliary function to operate on cube objects.
-#'  * \code{\link{cube2csv}}: Export slices of a cube to .csv format
+#'  \itemize{
+#'   \item \code{\link{cube2csv}}: Export slices of a cube to .csv format
+#'  }
 #'
 #' @name MGDrivE-Cube
 NULL
