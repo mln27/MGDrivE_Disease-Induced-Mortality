@@ -91,10 +91,10 @@ events <- rbind(gdEvents,semEvents1,semEvents2)
 ## Setup Petri Net
 ####################
 # Places
-SPN_P <- spn_P_lifecycle_node(params = theta,cube = cube)
+SPN_P <- spn_P_lifecycle_node(params = theta, cube = cube)
 
 # Transitions
-SPN_T <- spn_T_lifecycle_node(spn_P = SPN_P,params = theta,cube = cube, feqTol = 1e-10)
+SPN_T <- spn_T_lifecycle_node(spn_P = SPN_P, params = theta, cube = cube, feqTol = 1e-10)
 
 # Stoichiometry matrix
 S <- spn_S(spn_P = SPN_P, spn_T = SPN_T)
@@ -105,7 +105,7 @@ S <- spn_S(spn_P = SPN_P, spn_T = SPN_T)
 ####################
 # calculate equilibrium and setup initial conditions
 initialCons <- equilibrium_lifeycle(params = theta, NF = NF, phi = 0.5,
-                                    log = TRUE, spn_P = SPN_P, cube = cube)
+                                    log_dd = TRUE, spn_P = SPN_P, cube = cube)
 
 # approximate hazards for continous approximation
 approx_hazards <- spn_hazards(spn_P = SPN_P, spn_T = SPN_T, cube = cube,

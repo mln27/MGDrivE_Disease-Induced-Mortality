@@ -6,7 +6,7 @@
 #  |___//_/     /_____/_/|_|\__,_/_/ /_/ /_/ .___/_/\___/
 #                                         /_/
 # .............................................................................
-# SEM V1 Example Script
+# V1 Example Script
 # Ndeffo Mbah Lab
 # Jared Bennett, jared_bennett@berkeley.edu
 #
@@ -14,13 +14,18 @@
 # Initial setup.
 # This script is a parallel implementation of V1 for testing the SEM design.
 #
+# 20220424
+# Switched the cube - V1 will work for all of the trans constructs, but not the cis.
+# Checked releases, added basic plotting at the bottom for initial testing.
+# The non-reduced cube takes several minutes to run.
+#
 #
 #
 #
 ###############################################################################
 ## Setup packages
 ###############################################################################
-rm(list=ls());gc()
+rm(list=ls()); gc()
 startTime <- Sys.time()
 set.seed(1029384756)
 
@@ -58,18 +63,18 @@ repNames <- formatC(x = 1:numRep, width = 3, format = 'd', flag = '0')
 ########################################
 ## Raw Inputs
 ########################################
-simTime <- 10*365
+simTime <- 1*365
 sampTime <- 1
-releaseStart <- 20
-releaseInt <- 7
 
-# default bio parameters
-bioParameters <- list(betaK=20, tEgg=5, tLarva=6, tPupa=4, popGrowth=1.175, muAd=0.09)
+# gd releases
+relStart <- 60
+relInt <- 7
 
-# sweep over release number and size
+# default bio parameters and population size
+bioParameters <- list('betaK'=20, 'tEgg'=5, 'tLarva'=6, 'tPupa'=4, 'popGrowth'=1.175, 'muAd'=0.09)
 totPopSize <- 10000
 
-# sweep over migration rates - these are lifetime rates
+# sweep over migration rates - these are adult lifetime rates
 migRates <- c(0.01)
 numPatch <- 1
 patchSet <- 1:(numPatch-1)
@@ -95,10 +100,9 @@ batchMigration <- MGDrivE::basicBatchMigration(batchProbs=0,
 #  aF:
 #  bF:
 #  cF:
+#  xF:
+#  yF:
 #  mmrF:
-#  pDep:
-#  qDep:
-#  rDep:
 #  numRel: number of releases
 #  sizeRel: size of releases, as a percentage of total population * totPopSize
 paramCombo <- as.matrix(expand.grid('pF' = c(0.9,0.95),
@@ -107,10 +111,9 @@ paramCombo <- as.matrix(expand.grid('pF' = c(0.9,0.95),
                                     'aF' = c(0.9,0.95),
                                     'bF' = c(0.9,0.95),
                                     'cF' = c(0.9,0.95),
+                                    'xF' = c(0.9,0.95),
+                                    'yF' = c(0.9,0.95),
                                     'mmrF' = 0.05,
-                                    'pDep' = 0.00,
-                                    'qDep' = 0.00,
-                                    'rDep' = 0.00,
                                     'numRel' = seq.int(from = 0, to = 5, by = 1),
                                     'sizeRel' = c(0.1)* totPopSize ))
 
@@ -118,14 +121,11 @@ numPC <- NROW(paramCombo)
 
 
 ###############################################################################
-### Gene Drive
+### Simulation
 ###############################################################################
-# get initial time
-startTimeDrive <- Sys.time()
-
-#############################################################################
+########################################
 ### Migration
-#############################################################################
+########################################
 for(mR in migRates){
   # get initial time
   startTimeLand <- Sys.time()
@@ -153,9 +153,9 @@ for(mR in migRates){
   if(!dir.exists(outDir)){ dir.create(path = outDir, recursive = TRUE) }
 
 
-  ###############################################################################
+  ########################################
   ### Run Experiments
-  ###############################################################################
+  ########################################
   # Setup the cluster
   #  have to restart each time to validate changed objects
   #  https://www.r-bloggers.com/2015/06/identifying-the-os-from-r/
@@ -172,9 +172,9 @@ for(mR in migRates){
     parallel::clusterExport(
       cl = cl,
       varlist = c("outDir", "paramCombo","repNames",
-                  "moveMat", # release stuff do here
-                  "simTime", "sampTime","bioParameters","totPopSize",
-                  "batchMigration",)
+                  "moveMat", "relStart", "relInt",
+                  "simTime", "sampTime", "bioParameters", "totPopSize",
+                  "batchMigration", 'numRep')
     )
 
   } else {
@@ -189,15 +189,17 @@ for(mR in migRates){
   parallel::clusterSetRNGStream(cl = cl, iseed = sample(x = (-.Machine$integer.max):.Machine$integer.max,
                                                         size = 1, replace = FALSE))
 
-
   # Run
-  parallel::clusterApplyLB(cl = cl, x = 1:numPC, fun = function(x){
+  retList <- parallel::clusterApplyLB(cl = cl, x = 1:numPC, fun = function(x){
 
     ####################
     # Folders
     ####################
+    # generate experiment directory with all of the simulation parameters
+    # This ensures that the directories are unique
+    # made sure the width is enough that values are not cut off
     runFolders <- file.path(outDir,
-                            paste0(c(formatC(x = paramCombo[x,c('pF','qF','rF','aF','bF','cF','mmrF','pDep','qDep','rDep')]*1000,
+                            paste0(c(formatC(x = paramCombo[x,c('pF','qF','rF','aF','bF','cF','xF','yF','mmrF')]*1000,
                                              width = 4, format = 'd', flag = '0'),
                                      formatC(x = paramCombo[[x,'numRel']], width = 2, format = 'd', flag = '0'),
                                      formatC(x = paramCombo[[x,'sizeRel']], width = 4, format = 'd', flag = '0')),
@@ -211,21 +213,17 @@ for(mR in migRates){
     # Build cube
     ####################
     # equal parameters between males and females
-    cube <- MGDrivE2::cubeSEM(pF = paramCombo[[x,'pF']], qF = paramCombo[[x,'qF']], rF = paramCombo[[x,'rF']],
-                    aF = paramCombo[[x,'aF']], bF = paramCombo[[x,'bF']], cF = paramCombo[[x,'cF']],
-                    mmrF = paramCombo[[x,'mmrF']],
-                    pDep = paramCombo[[x,'pDep']], qDep = paramCombo[[x,'qDep']], rDep = paramCombo[[x,'rDep']])
-
-
-
-
-
-
-
+    #  all deposition is turned off
+    #  no genotype-specific fitness costs
+    cube <- MGDrivE2::cubeSEMtrans(pF = paramCombo[[x,'pF']], qF = paramCombo[[x,'qF']], rF = paramCombo[[x,'rF']],
+                                   aF = paramCombo[[x,'aF']], bF = paramCombo[[x,'bF']], cF = paramCombo[[x,'cF']],
+                                   xF = paramCombo[[x,'xF']], yF = paramCombo[[x,'yF']],
+                                   mmrF = paramCombo[[x,'mmrF']])
 
     ####################
     # Releases
     ####################
+    # default release list required - set all values to NULL
     patchReleases <- replicate(n=NROW(moveMat),
                                expr={list(maleReleases=NULL, femaleReleases=NULL,
                                           eggReleases=NULL, matedFemaleReleases=NULL,
@@ -234,20 +232,13 @@ for(mR in migRates){
 
     # generate releases at the specified times
     # safety for when there are no releases
-    # if(paramCombo[x,'numRel'] !=0){
-    #   patchReleases[[1]]$maleReleases <- MGDrivE::generateReleaseVector(driveCube = cube,
-    #                                                                     releasesParameters = list('releasesStart'=releaseStart,
-    #                                                                                               'releasesNumber'=paramCombo[x,'numRel'],
-    #                                                                                               'releasesInterval'=releaseInt,
-    #                                                                                               'releaseProportion'=paramCombo[x,'sizeRel']))
-    # }
-
-
-
-
-
-
-
+    if(paramCombo[x,'numRel'] !=0){
+      patchReleases[[1]]$maleReleases <- MGDrivE::generateReleaseVector(driveCube = cube,
+                                                                        releasesParameters = list('releasesStart'=relStart,
+                                                                                                  'releasesNumber'=paramCombo[x,'numRel'],
+                                                                                                  'releasesInterval'=relInt,
+                                                                                                  'releaseProportion'=paramCombo[x,'sizeRel']))
+    }
 
     ####################
     # Parameters
@@ -302,4 +293,48 @@ for(mR in migRates){
 
 # print time it took
 print(paste0('Total: ', capture.output(difftime(time1 = Sys.time(), time2 = startTime))))
+
+
+###############################################################################
+### Analysis and Plotting
+###############################################################################
+########################################
+### Analysis
+########################################
+# what kinds of analysis here?
+#  function to reduce by carrier/non-carrier?
+#  functions to reduce by allele-count?
+#  separate or combine by sex
+#  Remove 0 alleles?
+#    Is this covered by the reductions? Do the reductions need to count all alleles?
+#    If they don't, what happens to the statistics?
+
+
+
+
+
+
+
+########################################
+### Plotting
+########################################
+# something that works for now
+# redo with ggplot2
+# Throw save option in here - steal from fitting scripts?
+
+# get dirs
+allDirs <- list.dirs(path = outDir, full.names = TRUE, recursive = FALSE)
+
+# plot all reps from first parameter set
+MGDrivE::plotMGDrivEMult(readDir = allDirs[1], lwd = 0.35, alpha = 0.75)
+
+
+
+
+
+
+
+
+
+
 
