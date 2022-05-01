@@ -85,10 +85,12 @@ equilibrium_lifeycle <- function(params,NF,phi=0.5,log_dd=TRUE, spn_P,
                                  pop_ratio_M=NULL, cube){
 
   # checks
-  #  length of adult vec matches numberof patches
+  #  length of adult vec matches number of patches
   num_patch <- length(spn_P$ix)
-  if(length(NF) != num_patch){
-    stop("NF must be the same length as the number of patches")
+  if( length(NF)==1 ){
+    NF <- rep.int(x = NF, times = num_patch)
+  } else if( length(NF)!=num_patch ){
+    stop("NF must be length 1 or the same length as the number of patches")
   }
 
   # check params

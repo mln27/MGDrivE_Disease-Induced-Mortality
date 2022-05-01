@@ -42,13 +42,13 @@ if(!all(c('MGDrivE','MGDrivE2','ggplot2','Matrix') %in% installed.packages()[ ,'
 ## Experimental Setup and Paths Definition
 ###############################################################################
 USER <- 1
-numRep <- 2
+numRep <- 5
 numCores <- 2
 
 ###############################################################################
 if(USER == 1){
   # Jared Laptop
-  baseOut<-'~/Desktop/OUTPUT/MGDrivE'
+  baseOut<-'~/Desktop/OUTPUT/MGDrivE/V2_3'
 }else if(USER == 2){
   # ??
   baseOut<-''
@@ -109,7 +109,7 @@ bioPars$muE <- bioPars$muL <- bioPars$muP <- MGDrivE2::solve_muAqua(params = bio
 
 # sweep over migration rates - these are adult lifetime rates
 migRates <- c(0.01)
-numPatch <- 1
+numPatch <- 3
 patchSet <- 1:(numPatch-1)
 
 # this is specific to the inheritance pattern!!!
@@ -140,16 +140,16 @@ swapMat <- matrix(data = c("GW","GG","GU","GR","GV","GH","GS",
 #  mmrF:
 #  numRel: number of releases
 #  sizeRel: size of releases, as a percentage of total population * totPopSize
-paramCombo <- as.matrix(expand.grid('pF' = c(0.9,0.95),
-                                    'qF' = c(0.9,0.95),
-                                    'rF' = c(0.05, 0.1),
-                                    'aF' = c(0.9,0.95),
-                                    'bF' = c(0.9,0.95),
-                                    'cF' = c(0.9,0.95),
+paramCombo <- as.matrix(expand.grid('pF' = c(0.9),
+                                    'qF' = c(0.9),
+                                    'rF' = c(0.05),
+                                    'aF' = c(0.9),
+                                    'bF' = c(0.9),
+                                    'cF' = c(0.9),
                                     'mmrF' = 0.05,
                                     'numRel1' = seq.int(from = 0, to = 5, by = 1),
                                     'sizeRel1' = c(0.1)* numFem*2,
-                                    'numRel2' = seq.int(from = 30, to = 120, by = 30) ))
+                                    'numRel2' = seq.int(from = 30, to = 60, by = 30) ))
 
 numPC <- NROW(paramCombo)
 
@@ -256,7 +256,7 @@ for(mR in migRates){
     # Equilibrium and Hazards
     ####################
     # calculate equilibrium and setup initial conditions
-    initialCons <- MGDrivE2::equilibrium_lifeycle(params = bioPars, NF = numFem,
+    initialCons <- MGDrivE2::equilibrium_lifeycle(params = bioPars, NF = rep.int(x = numFem, times = numPatch),
                                                   phi = bioPars$phi, log_dd = TRUE,
                                                   spn_P = SPN_P, cube = cube)
 
@@ -503,84 +503,84 @@ allDirs <- list.dirs(path = outDir, full.names = TRUE, recursive = FALSE)
 
 
 
-###############################################################################
-### crap to clean up later
-###############################################################################
-####################
-## Equilibrium and Hazards
-####################
-# calculate equilibrium and setup initial conditions
-initialCons <- equilibrium_lifeycle(params = theta, NF = NF, phi = 0.5,
-                                    log = TRUE, spn_P = SPN_P, cube = cube)
-
-# approximate hazards for continous approximation
-approx_hazards <- spn_hazards(spn_P = SPN_P, spn_T = SPN_T, cube = cube,
-                              params = initialCons$params, type = "life",
-                              log = TRUE, exact = FALSE, tol = 1e-8,
-                              verbose = FALSE)
-
-# exact hazards for integer-valued state space
-exact_hazards <- spn_hazards(spn_P = SPN_P, spn_T = SPN_T, cube = cube,
-                             params = initialCons$params, type = "life",
-                             log = TRUE, exact = TRUE, tol = NaN,
-                             verbose = FALSE)
-
-
-####################
-## Simulate
-####################
-# deterministic
-ODE_out <- sim_trajectory_R(x0 = initialCons$M0, tmax = tmax, dt = dt, S = S,
-                            hazards = approx_hazards, sampler = "ode", method = "lsoda",
-                            events = events, verbose = TRUE)
-
-# tau sampling
-PTS_out <- sim_trajectory_R(x0 = initialCons$M0, tmax = tmax, dt = dt, num_reps = nReps,
-                            dt_stoch = dt_stoch, S = S, hazards = exact_hazards,
-                            sampler = "tau", events = events, verbose = TRUE)
-
-
-####################
-## Analyze and Plot
-####################
-##########
-# Deterministic
-##########
-# summarize females by genotype
-ODE_out_f <- summarize_females(out = ODE_out$state, spn_P = SPN_P)
-
-# summarize males by genotype
-ODE_out_m <- summarize_males(out = ODE_out$state)
-
-# add sex for plotting
-ODE_out_f$sex <- "Female"
-ODE_out_m$sex <- "Male"
-
-# plot
-ggplot(data = rbind(ODE_out_f, ODE_out_m)) +
-  geom_line(aes(x = time, y = value, color = genotype)) +
-  facet_wrap(facets = vars(sex), scales = "fixed") +
-  theme_bw() +
-  ggtitle("SPN: ODE Solution")
-
-
-##########
-# Stochastic
-##########
-# summarize females/males
-PTS_out_f <- summarize_females(out = PTS_out$state, spn_P = SPN_P)
-PTS_out_m <- summarize_males(out = PTS_out$state)
-
-# add sex for plotting
-PTS_out_f$sex <- "Female"
-PTS_out_m$sex <- "Male"
-
-# plot adults
-ggplot(data = rbind(PTS_out_f, PTS_out_m)) +
-  geom_line(aes(x = time, y = value, color = genotype)) +
-  facet_wrap(facets = vars(sex), scales = "fixed") +
-  theme_bw() +
-  ggtitle("SPN: Tau-leaping Approximation")
+# ###############################################################################
+# ### crap to clean up later
+# ###############################################################################
+# ####################
+# ## Equilibrium and Hazards
+# ####################
+# # calculate equilibrium and setup initial conditions
+# initialCons <- equilibrium_lifeycle(params = theta, NF = NF, phi = 0.5,
+#                                     log = TRUE, spn_P = SPN_P, cube = cube)
+#
+# # approximate hazards for continous approximation
+# approx_hazards <- spn_hazards(spn_P = SPN_P, spn_T = SPN_T, cube = cube,
+#                               params = initialCons$params, type = "life",
+#                               log = TRUE, exact = FALSE, tol = 1e-8,
+#                               verbose = FALSE)
+#
+# # exact hazards for integer-valued state space
+# exact_hazards <- spn_hazards(spn_P = SPN_P, spn_T = SPN_T, cube = cube,
+#                              params = initialCons$params, type = "life",
+#                              log = TRUE, exact = TRUE, tol = NaN,
+#                              verbose = FALSE)
+#
+#
+# ####################
+# ## Simulate
+# ####################
+# # deterministic
+# ODE_out <- sim_trajectory_R(x0 = initialCons$M0, tmax = tmax, dt = dt, S = S,
+#                             hazards = approx_hazards, sampler = "ode", method = "lsoda",
+#                             events = events, verbose = TRUE)
+#
+# # tau sampling
+# PTS_out <- sim_trajectory_R(x0 = initialCons$M0, tmax = tmax, dt = dt, num_reps = nReps,
+#                             dt_stoch = dt_stoch, S = S, hazards = exact_hazards,
+#                             sampler = "tau", events = events, verbose = TRUE)
+#
+#
+# ####################
+# ## Analyze and Plot
+# ####################
+# ##########
+# # Deterministic
+# ##########
+# # summarize females by genotype
+# ODE_out_f <- summarize_females(out = ODE_out$state, spn_P = SPN_P)
+#
+# # summarize males by genotype
+# ODE_out_m <- summarize_males(out = ODE_out$state)
+#
+# # add sex for plotting
+# ODE_out_f$sex <- "Female"
+# ODE_out_m$sex <- "Male"
+#
+# # plot
+# ggplot(data = rbind(ODE_out_f, ODE_out_m)) +
+#   geom_line(aes(x = time, y = value, color = genotype)) +
+#   facet_wrap(facets = vars(sex), scales = "fixed") +
+#   theme_bw() +
+#   ggtitle("SPN: ODE Solution")
+#
+#
+# ##########
+# # Stochastic
+# ##########
+# # summarize females/males
+# PTS_out_f <- summarize_females(out = PTS_out$state, spn_P = SPN_P)
+# PTS_out_m <- summarize_males(out = PTS_out$state)
+#
+# # add sex for plotting
+# PTS_out_f$sex <- "Female"
+# PTS_out_m$sex <- "Male"
+#
+# # plot adults
+# ggplot(data = rbind(PTS_out_f, PTS_out_m)) +
+#   geom_line(aes(x = time, y = value, color = genotype)) +
+#   facet_wrap(facets = vars(sex), scales = "fixed") +
+#   theme_bw() +
+#   ggtitle("SPN: Tau-leaping Approximation")
 
 
 

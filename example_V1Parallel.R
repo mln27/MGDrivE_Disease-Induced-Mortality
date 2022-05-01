@@ -40,13 +40,13 @@ if(!all(c('MGDrivE','MGDrivE2') %in% installed.packages()[ ,'Package']) ){
 ## Experimental Setup and Paths Definition
 ###############################################################################
 USER <- 1
-numRep <- 2
+numRep <- 5
 numCores <- 2
 
 ###############################################################################
 if(USER == 1){
   # Jared Laptop
-  baseOut<-'~/Desktop/OUTPUT/MGDrivE'
+  baseOut<-'~/Desktop/OUTPUT/MGDrivE/V1_3'
 }else if(USER == 2){
   # ??
   baseOut<-''
@@ -76,7 +76,7 @@ totPopSize <- 10000
 
 # sweep over migration rates - these are adult lifetime rates
 migRates <- c(0.01)
-numPatch <- 1
+numPatch <- 3
 patchSet <- 1:(numPatch-1)
 
 # batch migration is disabled by setting the probability to 0
@@ -105,19 +105,21 @@ batchMigration <- MGDrivE::basicBatchMigration(batchProbs=0,
 #  mmrF:
 #  numRel: number of releases
 #  sizeRel: size of releases, as a percentage of total population * totPopSize
-paramCombo <- as.matrix(expand.grid('pF' = c(0.9,0.95),
-                                    'qF' = c(0.9,0.95),
-                                    'rF' = c(0.05, 0.1),
-                                    'aF' = c(0.9,0.95),
-                                    'bF' = c(0.9,0.95),
-                                    'cF' = c(0.9,0.95),
-                                    'xF' = c(0.9,0.95),
-                                    'yF' = c(0.9,0.95),
+paramCombo <- as.matrix(expand.grid('pF' = c(0.9),
+                                    'qF' = c(0.9),
+                                    'rF' = c(0.05),
+                                    'aF' = c(0.9),
+                                    'bF' = c(0.9),
+                                    'cF' = c(0.9),
+                                    'xF' = c(0.9),
+                                    'yF' = c(0.9),
                                     'mmrF' = 0.05,
                                     'numRel' = seq.int(from = 0, to = 5, by = 1),
                                     'sizeRel' = c(0.1)* totPopSize ))
 
 numPC <- NROW(paramCombo)
+
+# 46min
 
 
 ###############################################################################
@@ -326,7 +328,7 @@ print(paste0('Total: ', capture.output(difftime(time1 = Sys.time(), time2 = star
 allDirs <- list.dirs(path = outDir, full.names = TRUE, recursive = FALSE)
 
 # plot all reps from first parameter set
-MGDrivE::plotMGDrivEMult(readDir = allDirs[1], lwd = 0.35, alpha = 0.75)
+# MGDrivE::plotMGDrivEMult(readDir = allDirs[1], lwd = 0.35, alpha = 0.75)
 
 
 

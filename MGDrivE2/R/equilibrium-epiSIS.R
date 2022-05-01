@@ -137,6 +137,8 @@ equilibrium_SEI_SIS <- function(params, node_list="b",NF=NULL,phi=0.5, NH=NULL,l
   }
 
   # checks to perform if there are mixed nodes
+  #  should we / can we implement this with a default for the parameters to be
+  #  the same over all nodes?
   numBoth <- sum(node_list=="b")
   if(numBoth){
     if(any(numBoth != c(length(params$NH),length(params$b),length(params$c),length(params$X)) ) ){
@@ -153,16 +155,31 @@ equilibrium_SEI_SIS <- function(params, node_list="b",NF=NULL,phi=0.5, NH=NULL,l
   # checks for human-only nodes
   numH <- sum(node_list=="h")
   if(numH){
-    # total and prevalence in humans
-    if(all(numH != c(length(NH),length(pop_ratio_H)) ) ){
-      stop("NH and pop_ratio_H must be the same length as the number of human-only patches")
+    # total humans
+    if( length(NH)==1 ){
+      NH <- rep.int(x = NH, times = numH)
+    } else if( length(NH)!= numH){
+      stop("NH must be length 1 or the same length as the number of human-only patches")
     }
-  }
 
-  if(sum(node_list=="m") != length(NF)){
-    stop("NF must be the same length as the number of mosquito-only patches")
-  }
+    # prevalence in humans
+    if( length(pop_ratio_H)==1 ){
+      pop_ratio_H <- rep.int(x = pop_ratio_H, times = numH)
+    } else if( length(pop_ratio_H)!=numH ){
+      stop("pop_ratio_H must be length 1 or the same length as the number of human-only patches")
+    }
+  } # end human nodes
 
+  # checks for mosquito-only nodes
+  numM <- sum(node_list=="m")
+  if( length(NF)==1 ){
+    NF <- rep.int(x = NF, times = numM)
+  } else if( length(NF)!=numM ){
+    stop("NF must be length 1 or the same length as the number of mosquito-only patches")
+  } # end mosquito nodes
+
+  # can these have a default built-in for all nodes to share the same parameters
+  #  without having to build vectors of repeated entries?
   num_nodes <- length(node_list)
   eMsg <- paste0("population ratios (popRatio_{Aq,F,M} must be one of three values:\n",
            "    NULL (defult), where genotypes are taken from the cube.\n",

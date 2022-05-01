@@ -137,6 +137,8 @@ equilibrium_SEI_SEIR <- function(params, node_list="b",NF=NULL,phi=0.5, NH=NULL,
   }
 
   # checks to perform if there are mixed nodes
+  #  should we / can we implement this with a default for the parameters to be
+  #  the same over all nodes?
   numBoth <- sum(node_list=="b")
   if(numBoth){
     # lengths of inputs
@@ -169,8 +171,8 @@ equilibrium_SEI_SEIR <- function(params, node_list="b",NF=NULL,phi=0.5, NH=NULL,
     }
   } # end checks for mixed nodes
 
-
   # checks to perform if there are human-only nodes
+  #  Do we need to set a default for the rest of these?
   numH <- sum(node_list=="h")
   if(numH){
     # check human prevalence breakdown
@@ -192,16 +194,23 @@ equilibrium_SEI_SEIR <- function(params, node_list="b",NF=NULL,phi=0.5, NH=NULL,
     }
 
     # check total humans
-    if(numH != length(NH)  ){
-      stop("NH and must be the same length as the number of human-only nodes")
+    if( length(NH)==1 ){
+      NH <- rep.int(x = NH, times = numH)
+    } else if( length(NH)!= numH){
+      stop("NH must be length 1 or the same length as the number of human-only patches")
     }
   } # end checks for human-only nodes
 
+  # checks for mosquito-only nodes
+  numM <- sum(node_list=="m")
+  if( length(NF)==1 ){
+    NF <- rep.int(x = NF, times = numM)
+  } else if( length(NF)!=numM ){
+    stop("NF must be length 1 or the same length as the number of mosquito-only patches")
+  } # end mosquito nodes
 
-  if(sum(node_list=="m") != length(NF)){
-    stop("NF must be the same length as the number of mosquito-only nodes")
-  }
-
+  # can these have a default built-in for all nodes to share the same parameters
+  #  without having to build vectors of repeated entries?
   num_nodes <- length(node_list)
   eMsg <- paste0("population ratios (popRatio_{Aq,F,M} must be one of three values:\n",
            "    NULL (defult), where genotypes are taken from the cube.\n",
