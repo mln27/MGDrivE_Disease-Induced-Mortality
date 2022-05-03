@@ -4,6 +4,8 @@
 #   Marshall Lab
 #   Sean L. Wu (slwu89@berkeley.edu)
 #   October 2019
+#   Jared Bennett (jared_bennett@berkeley.edu)
+#   May 2022
 #
 ################################################################################
 
@@ -35,31 +37,55 @@
 #' @importFrom Matrix sparseMatrix
 #'
 spn_Pre <- function(spn_P,spn_T){
+  # These updates owe a lot to Sean and his vectorization in the dev branch
+  # Some of those ideas came from me, the implementation and finishing are him
+  # The updates below modify the core logic but maintain much of his work
 
+  # these will be used at the end
   u <- spn_P$u # dimension of the places
   v <- spn_T$v # dimension of the transitions
 
-  Pre <- sparseMatrix(i = {},j = {},x = c(0L),dims=c(length(v),length(u)),dimnames=list(v,u))
+  # indexes, input arcs, and input weights
+  ix <- lapply(X = spn_T$T, FUN = "[[", "vix")
+  s <- lapply(X = spn_T$T, FUN = "[[", "s")
+  s_w <- lapply(X = spn_T$T, FUN = "[[", "s_w")
 
-  # fill in the Pre matrix
-  for(i in 1:length(spn_T$T)){
+  # ignore transitions that are always on (if any)
+  #  This replaces the heart of the loop from the original function
+  #  It uses lapply because it was faster (empirical testing)
+  #  The logic is inverted, because it is faster (more/earlier escape places)
+  #   and we don't have to invert it again afterward - we're not really interested
+  #   in the "FALSE" indexes, we want to keep the "TRUE" ones.
+  #  unlist to get vector
+  #  which so we can do index-based subsetting - way faster
+  not_null_idx <- which(unlist(lapply(X = seq_len(length(s)),
+                                      FUN = function(i){any(!is.nan(s[[i]]), !is.nan(s_w[[i]]))}
+                                      )))
 
-    # index into v (rows)
-    ix <- spn_T$T[[i]]$vix
+  # keep things
+  #  notice index-based subsetting
+  ix <- ix[not_null_idx]
+  s <- s[not_null_idx]
+  s_w <- s_w[not_null_idx]
 
-    # input arcs and weights
-    s <- spn_T$T[[i]]$s
-    s_w <- spn_T$T[[i]]$s_w
+  # for transitions with multiple input arcs
+  s_len <- lengths(x = s, use.names = FALSE)
 
-    # skip null stuff (in this case, transitions that are always on)
-    if(all(is.nan(s)) || all(is.nan(s_w))){
-      next
-    }
+  # replicate the elements of the ix (transition index) that number of times
+  #  we replicate everything because it is faster than handling pieces in R
+  #  This also turns "ix" into an integer vector, necessary for the matrix
+  ix <- rep.int(x = as.integer(unlist(ix)), times = s_len)
 
-    # input arcs go into the matrix
-    Pre[ix,s] <- as.integer(s_w)
-  }
-
+  # build sparse pre-matrix
+  #  this is transposed from the original - from v X u matrix to a u X v, because
+  #  that's the final shape we want
+  Pre <- sparseMatrix(
+    i = as.integer(unlist(s)),
+    j = ix,
+    x = as.integer(unlist(s_w)),
+    dims = c(length(u), length(v)),
+    dimnames = list(u, v)
+  )
 
   return(Pre)
 }
@@ -91,30 +117,55 @@ spn_Pre <- function(spn_P,spn_T){
 #' @return a matrix of type \code{\link[Matrix]{dgCMatrix-class}}
 #'
 spn_Post <- function(spn_P,spn_T){
+  # These updates owe a lot to Sean and his vectorization in the dev branch
+  # Some of those ideas came from me, the implementation and finishing are him
+  # The updates below modify the core logic but maintain much of his work
 
+  # these will be used at the end
   u <- spn_P$u # dimension of the places
   v <- spn_T$v # dimension of the transitions
 
-  Post <- sparseMatrix(i = {},j = {},x = c(0L),dims=c(length(v),length(u)),dimnames=list(v,u))
+  # indexes, output arcs, and output weights
+  ix <- lapply(X = spn_T$T, FUN = "[[", "vix")
+  o <- lapply(X = spn_T$T, FUN = "[[", "o")
+  o_w <- lapply(X = spn_T$T, FUN = "[[", "o_w")
 
-  # fill in the Post matrix
-  for(i in 1:length(spn_T$T)){
+  # ignore transitions that are always on (if any)
+  #  This replaces the heart of the loop from the original function
+  #  It uses lapply because it was faster (empirical testing)
+  #  The logic is inverted, because it is faster (more/earlier escape places)
+  #   and we don't have to invert it again afterward - we're not really interested
+  #   in the "FALSE" indexes, we want to keep the "TRUE" ones.
+  #  unlist to get vector
+  #  which so we can do index-based subsetting - way faster
+  not_null_idx <- which(unlist(lapply(X = seq_len(length(o)),
+                                      FUN = function(i){any(!is.nan(o[[i]]), !is.nan(o_w[[i]]))}
+  )))
 
-    # index into v (rows)
-    ix <- spn_T$T[[i]]$vix
+  # keep things
+  #  notice index-based subsetting
+  ix <- ix[not_null_idx]
+  o <- o[not_null_idx]
+  o_w <- o_w[not_null_idx]
 
-    # output arcs and weights
-    o <- spn_T$T[[i]]$o
-    o_w <- spn_T$T[[i]]$o_w
+  # for transitions with multiple output arcs
+  o_len <- lengths(x = o, use.names = FALSE)
 
-    # skip null stuff (in this case, transitions that only consume tokens)
-    if(all(is.nan(o)) || all(is.nan(o_w))){
-      next
-    }
+  # replicate the elements of the ix (transition index) that number of times
+  #  we replicate everything because it is faster than handling pieces in R
+  #  This also turns "ix" into an integer vector, necessary for the matrix
+  ix <- rep.int(x = as.integer(unlist(ix)), times = o_len)
 
-    # output arcs go into the matrix
-    Post[ix,o] <- as.integer(o_w)
-  }
+  # build sparse post-matrix
+  #  this is transposed from the original - from v X u matrix to a u X v, because
+  #  that's the final shape we want
+  Post <- sparseMatrix(
+    i = as.integer(unlist(o)),
+    j = ix,
+    x = as.integer(unlist(o_w)),
+    dims = c(length(u), length(v)),
+    dimnames = list(u, v)
+  )
 
   return(Post)
 }
@@ -147,7 +198,7 @@ spn_Post <- function(spn_P,spn_T){
 #' @param spn_P set of places (P) (see details)
 #' @param spn_T set of transitions (T) (see details)
 #'
-#' @importFrom Matrix drop0 t
+#' @importFrom Matrix drop0
 #'
 #' @export
 spn_S <- function(spn_P,spn_T){
@@ -159,12 +210,8 @@ spn_S <- function(spn_P,spn_T){
   Post <- spn_Post(spn_P = spn_P,spn_T = spn_T)
 
   # calculate difference stoichiometry
+  #  drop zeros
+  #  return (u X v) matrix
   # A matrix
-  A <- Post - Pre
-
-  # A has 0 being stored; get rid of it
-  A_new <- drop0(x = A)
-
-  # return (u X v) matrix
-  return(t(A_new))
+  return(drop0(x = Post - Pre))
 }

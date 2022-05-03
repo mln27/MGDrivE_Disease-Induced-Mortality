@@ -256,7 +256,7 @@ for(mR in migRates){
     # Equilibrium and Hazards
     ####################
     # calculate equilibrium and setup initial conditions
-    initialCons <- MGDrivE2::equilibrium_lifeycle(params = bioPars, NF = rep.int(x = numFem, times = numPatch),
+    initialCons <- MGDrivE2::equilibrium_lifeycle(params = bioPars, NF = numFem,
                                                   phi = bioPars$phi, log_dd = TRUE,
                                                   spn_P = SPN_P, cube = cube)
 
@@ -275,8 +275,11 @@ for(mR in migRates){
     ####################
     # gene drive releases
     if(paramCombo[[nP, 'numRel1']] > 0){
+      # setup que to release in first node, if there are multiple nodes
+      relNode <- if( numPatch>1 ) '_1' else ''
+
       # make sure we're performing releases, otherwise skip everything
-      gdEvents <- data.frame('var' = paste0('F_', cube$releaseType, '_', cube$wildType),
+      gdEvents <- data.frame('var' = paste0('F_', cube$releaseType, '_', cube$wildType, relNode),
                              'time' = seq(from = relStart1,
                                           length.out = paramCombo[[nP, 'numRel1']],
                                           by = relInt1),
@@ -294,24 +297,32 @@ for(mR in migRates){
         # this is how the spn builds the statespace
         #  we have to recreate this perfectly, or the swapping won't work
         # females_unmated <- file.path("U",g, fsep = "_")
+        # females_unmated <- file.path("U_", g, "_", node_id, fsep = "")
+        #
         # males <- file.path("M",g,fsep = "_")
+        # males <- file.path("M",g,node_id,fsep = "_")
+        #
         # females <- file.path("F_",rep(g, each = nG),"_",g, fsep = "")
-        uEvents <- data.frame('var' = rep(file.path("U", swapMat[ ,"off"], fsep = "_"),
+        # females <- file.path("F_",rep(g, each = nG),"_",g,"_",node_id, fsep = "")
+        uEvents <- data.frame('var' = rep(file.path("U_", swapMat[ ,"off"], relNode, fsep = ''),
                                           each = paramCombo[[nP,'numRel2']]),
-                              'value' = rep(file.path("U", swapMat[ ,"on"], fsep = "_"),
-                                            each = paramCombo[[nP,'numRel2']]),
+                              'value' = rep(file.path("U_", swapMat[ ,"on"], relNode, fsep = ''),
+                                          each = paramCombo[[nP,'numRel2']]),
                               'time' = timeVar,
                               'method' = "swap")
 
-        mEvents <- data.frame('var' = rep(file.path("M", swapMat[ ,"off"], fsep = "_"),
+        mEvents <- data.frame('var' = rep(file.path("M_", swapMat[ ,"off"], relNode, fsep = ''),
                                           each = paramCombo[[nP,'numRel2']]),
-                              'value' = rep(file.path("M", swapMat[ ,"on"], fsep = "_"),
-                                            each = paramCombo[[nP,'numRel2']]),
+                              'value' = rep(file.path("M_", swapMat[ ,"on"], relNode, fsep = ''),
+                                          each = paramCombo[[nP,'numRel2']]),
                               'time' = timeVar,
                               'method' = "swap")
 
         # grab all female states from petri net
         femHold <- grep(pattern = "^F_", x = SPN_P$u, value = TRUE)
+        # if more than 1 node, we assume only node 1 gets sprayed
+        #  this will fail if the nodeID string is duplicated in the genotypes somehow
+        if(numPatch>1 ) femHold <- grep(pattern = relNode, x = femHold, fixed = TRUE, value = TRUE)
         # grap only the states with impacted genotypes
         femVar <- grep(pattern = paste0(swapMat[ ,"off"], collapse = "|"), x = femHold, value = TRUE)
         # swap appropriate genotypes
