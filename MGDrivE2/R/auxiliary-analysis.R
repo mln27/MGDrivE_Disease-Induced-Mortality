@@ -1,12 +1,11 @@
 ################################################################################
 #
-#   MGDrivE2: Auxiliary data wrangling functions
+#   MGDrivE2: Auxiliary data wrangling functions for .csv input/output
 #   Marshall Lab
 #   Jared B. Bennett (jared_bennett@berkeley.edu)
 #   May 2019
 #
 ################################################################################
-
 ################################################################################
 # Main Split-Aggregate Function
 ################################################################################
@@ -1078,3 +1077,418 @@ base_MQ <- function(fList,oDir,sName,nodeNames,nNodes,
   } # end loop over nodes
 
 } # end base function
+
+################################################################################
+# Plotting and Metrics Summary Function
+################################################################################
+# This function differs from teh 2 above by being more generic - designed to work
+# with V2 and V1 - and by saving data in a ggplot-friendly format.
+
+#' Plotting and Basic Metrics for ggplot2
+#'
+#' This function is designed to read in all output from one parameter set and
+#' then output ggplot-friendly raw data and simple metrics. The raw data maintains
+#' the repetition, sex, patch, simulation time, and genotype labels. The metrics are
+#' calculated over repetitions and thus maintain sex, patch, simulation time, and
+#' genotype labels.
+#'
+#' This function is generic to \code{MGDrivE} - working on both V1 and V2. Because
+#' of this, it has some assumptions about how the data is organized:
+#' \itemize{
+#'  \item read_dir
+#'  \itemize{
+#'         \item repetition 1
+#'         \itemize{
+#'                \item M_[patch1].csv
+#'                \item M_[patch2].csv
+#'                \item F_[patch1].csv
+#'                \item F_[patch2].csv
+#'                \item ...
+#'         }
+#'         \item repetition 2
+#'         \itemize{
+#'                \item M_[patch1].csv
+#'                \item M_[patch2].csv
+#'                \item F_[patch1].csv
+#'                \item F_[patch2].csv
+#'                \item ...
+#'         }
+#'         \item repetition 3
+#'         \item ...
+#'  }
+#' }
+#'
+#' This function requires V2 data to be output in V1 format. It will ignore aquatic
+#' stages if present. Because of the different way that patches are labeled between
+#' versions, it cannot find/check the patches through string manipulation. Therefore,
+#' it assumes the shape of the directories and checks that, which indirectly checks
+#' the patches, but does not directly check them for correctness or order.
+#'
+#' Since V1 and V2 use different parameters, and we may be working on data from either,
+#' this function reads in an example file to get simulation parameters and check
+#' genotypes against.
+#'
+#' \code{write_dir} defaults to the read directory, placing the analysis with
+#' the repeititon data. If this is not desired, the user must build their own
+#' \code{write_dir} and supply it to the function.
+#'
+#' \code{sex} provides the user options on how to handle the male and female
+#' data. There are 4 options:
+#' \itemize{
+#'  \item \code{both}: This reads and keeps male and female data. It is the default
+#'  behavior.
+#'  \item \code{m} or \code{male}: only analyzes male data. It does not read in female
+#'  data or analyze it at all.
+#'  \item \code{f} or \code{female}: only analyzes female data. Does not read or
+#'  analyze male files.
+#'  \item \code{agg}: This reads in both male and female data, but then aggregates
+#'  it, so that full population data remains.
+#' }
+#'
+#' \code{goi} can be ignored or provided as a named list. This allows the user to
+#' aggregate genotypes, or alleles, in any desired fashion. The default value, \code{NULL},
+#' assumes no aggregate or renaming, so all genotypes are used and kept separate.
+#' When specific analysis are desired, the input is a named list, e.g.
+#' \code{goi=list("A"=c(geno1, geno2), "B"=c(geno1, geno3))}. The list names are
+#' returned in the output and can be whatever the user would like to plot. The
+#' genotypes within the list must correspond to genotypes in the data and are checked
+#' for consistency. This function aggregates the data counts, so if one wishes to
+#' do allele frequencies, the genotypes can be duplicated as many times as required
+#' (e.g., a diploid would need them duplicated twice, triploid three times, etc.).
+#' There is no "total" provided by this function - if a "total" count is desired,
+#' then the \code{goi} list must contain \code{goi=list(..."total"=c(all genotypes listed))}.
+#'
+#' @param read_dir directory with repetition directories in it
+#' @param write_dir directory to build output directory, default is \code{read_dir}
+#' @param sex string dictating how to handle male/female data
+#' @param patch_agg boolean, should patches be aggregated, default is \code{FALSE}
+#' @param goi named list dictating "genotypes-of-interest", default is NULL
+#' @param drop_zero_goi boolean, should genotypes with zero counts be dropped, default is \code{TRUE}
+#'
+#' @importFrom utils read.csv write.table
+#' @importFrom stats quantile
+#'
+#' @return Builds an analysis directory within \code{write_dir} with three files:
+#' \itemize{
+#'  \item params.txt: Text file listing the parameters used for the analysis
+#'  \item plot.csv: Comma-separated file of simulation data in long-form for ggplot2
+#'  \item metrics.csv: Comma-separated file of some basic metrics in long-form for ggplot2
+#' }
+#'
+#' @export
+analyze_ggplot_CSV <- function(read_dir, write_dir = read_dir, sex = "both", patch_agg = FALSE,
+                               goi = NULL, drop_zero_goi = TRUE){
+
+  ##########
+  # Environment Setup
+  ##########
+  oldSeed <- .GlobalEnv$.Random.seed
+  on.exit(.GlobalEnv$.Random.seed <- oldSeed)
+
+
+  ########################################
+  # Parameter Checks
+  ########################################
+  # required parameters
+  if(missing(read_dir)){
+    stop("Please provide: 'read_dir'")
+  }
+
+  # check read_dir
+  if(!dir.exists(paths = read_dir)){
+    stop("The 'read_dir' does not exist")
+  }
+
+  # check write_dir
+  if(!dir.exists(paths = write_dir)){
+    stop("The 'write_dir' does not exist, please create it")
+  }
+
+  # check sex
+  mVal <- c('m','male')
+  fVal <- c('f','female')
+  if(!(sex %in% c(mVal,fVal,'both','agg'))){
+    stop("'sex' must be one of: 'm', 'f', 'both', 'agg'")
+  }
+  # expand to more informative names
+  #  let the default be "as-is"
+  sexBool <- (sex == 'agg')
+  sexString <- paste0('sex: ', paste0(sex, collapse = ', ')) # need the parameter later
+  sex <- switch(EXPR = sex, 'm'='male', 'f'='female',
+                'both'=c('female','male'), 'agg'=c('female','male'))
+
+  # check patch_agg
+  if(!is.logical(patch_agg)){
+    stop("'patch_agg' must be 'TRUE' or 'FALSE'")
+  }
+
+  # check drop_zero_goi
+  if(!is.logical(drop_zero_goi)){
+    stop("'drop_zero_goi' must be 'TRUE' or 'FALSE'")
+  }
+
+
+  ########################################
+  # Setup
+  ########################################
+  ##########
+  # Files
+  ##########
+  # the search pattern subsets for male or female only input
+  #  do this first in case someone has malformed data - then the appropriate sex
+  #  only is checked.
+  searchPattern <- c('^F_','^M_')
+  if(length(sex) == 1){
+    if(sex %in% mVal ){
+      searchPattern <- '^M_'
+    } else if(sex %in% fVal){
+      searchPattern <- '^F_'
+    }
+  }
+
+  # male/female file list
+  # organization: repetitions -> male/female -> file name vec
+  dirList <- list.dirs(path = read_dir, full.names = TRUE, recursive = FALSE)
+  dirList <- grep(pattern = 'analysis_', x = dirList, fixed = TRUE, invert = TRUE, value = TRUE)
+  fileList <- lapply(X = dirList,
+                     FUN = function(x){lapply(X = searchPattern,
+                                              FUN = list.files,
+                                              path = x, full.names = TRUE)})
+
+  # check input data
+  if(length(fileList) == 0){
+    stop("There are no directories in the 'read_dir', please check simulation output")
+  }
+  if(length(unique(unlist(lapply(X = fileList, FUN = lengths)))) != 1){
+    stop("Not all of the repetitions have the same number of files, please check simulation output")
+  }
+
+  ##########
+  # Variables
+  ##########
+  # read in example file
+  testFile <- read.csv(file = fileList[[1]][[1]][1], header = TRUE)
+
+  # get constants for later
+  numReps <- length(fileList)
+  numPatch <- length(fileList[[1]][[1]])
+  genotypes <- colnames(testFile)[-1] # first column is "Time"
+  numGeno <- length(genotypes)
+  simTimes <- testFile[ ,"Time"]
+  simTime <- length(simTimes)
+  numSex <- length(sex)
+  numCol <- numGeno+1L # because it reads in "Time", and then we drop it
+  numRead <- simTime*numCol # simTime is fine because we skip 1 row, the header row
+
+  # check goi and setup objects for later
+  if(is.null(goi)) {
+    # named list where each element is a genotype
+    #  this maintains the shape that GOI needs to be
+    goi <- as.list(x = setNames(object = genotypes, nm = genotypes))
+  } else if(!all(unlist(x = goi, use.names = FALSE) %in% genotypes)) {
+    stop("elements of 'goi' must be valid genotypes in the files, please check goi list")
+  }
+  numGOI <- length(goi)
+  goiNumeric <- lapply(X = goi, FUN = match, table = genotypes)
+  goiLengths <- lengths(x = goi)
+
+  ########################################
+  # Data
+  ########################################
+  ####################
+  # Setup and Read
+  ####################
+  # setup generic data array
+  #  this may get reduced later by sex and/or patch
+  dataArray <- array(data = 0, dim = c(numReps, numSex, numPatch, simTime, numGOI),
+                     dimnames = list("Repetitions"=seq_len(numReps),
+                                     "Sex"=sex,
+                                     "Patch"=seq_len(numPatch),
+                                     "Time"=simTimes,
+                                     "GOI"=names(goi))
+  )
+
+  # wR = which rep
+  # wS = which sex
+  # wP = which patch
+  # wGOIN = which goiNumeric
+  for(wR in seq_len(numReps)){
+    for(wS in seq_len(numSex)){
+      for(wP in seq_len(numPatch)){
+        # read in file, drop header
+        holdMat <- matrix(data = scan(file = fileList[[wR]][[wS]][[wP]],
+                                      what = numeric(), n = numRead,
+                                      sep = ",", skip = 1, quiet = TRUE),
+                          nrow = simTime, ncol = numCol, byrow = TRUE)[ ,-1]
+
+        # collapse genotypes into genotypes of interest
+        for(wGOIN in seq_len(numGOI)){
+          dataArray[wR,wS,wP, ,wGOIN] <- .rowSums(x = holdMat[ ,goiNumeric[[wGOIN]],drop=FALSE],
+                                                  m = simTime, n = goiLengths[wGOIN])
+        }
+
+      } # end patch loop
+    } # end sex loop
+  } # end rep loop
+
+
+  ####################
+  # Organize
+  ####################
+  ##########
+  # Patch Agg.
+  ##########
+  if(patch_agg){
+    # is there a better way to do this?
+    #  it seems really bad
+    # turn array into a list of arrays, slicing along the patch dimension
+    # aggregate the list back into a single array
+    dataArray <- Reduce(f = "+",
+                        x = lapply(X = seq_len(dim(dataArray)[3]),
+                                   FUN = function(x)dataArray[ , ,x, , ,drop = FALSE]))
+    # update dimension name
+    dimnames(dataArray)$Patch <- "all"
+  } # end patch reduction
+
+  ##########
+  # Sex Agg.
+  ##########
+  if(sexBool){
+    # combine over sex
+    dataArray <- dataArray[ ,1, , , ,drop = FALSE] + dataArray[ ,2, , , ,drop = FALSE]
+    # update dimension name
+    dimnames(dataArray)$Sex <- "agg"
+  } # end sex reduction
+
+  ##########
+  # GOI Reduct.
+  ##########
+  if(drop_zero_goi){
+    # get indices of non-zero GOI
+    keepIdx <- which(vapply(X = seq_len(numGOI),
+                            FUN = function(x){sum(dataArray[ , , , ,x])>=1},
+                            FUN.VALUE = logical(length = 1)))
+    # safety check
+    if(length(keepIdx)==0){
+      stop("There are no genotypes of interest in the analysis.
+       Please check simulation output or the elements of 'goi'")
+    }
+    # subset, handles names internally
+    dataArray <- dataArray[ , , , ,keepIdx,drop = FALSE]
+  } # end drop check
+
+
+  ########################################
+  # Output and Analysis
+  ########################################
+  ##########
+  # Parameters
+  ##########
+  # I would like to do this as a hash, built by converting all input to a string,
+  #  concatenating, and then hashing, so it is unique to the parameter input.
+  # R has no good way to build hashes, so using a basic random number and hope they
+  #  don't clash.
+  numLabel <- formatC(x = sample(x = 0:.Machine$integer.max, size = 1, replace = FALSE),
+                      width = 10, format = 'd', flag = '0')
+  aDir <- file.path(write_dir, paste0("analysis_", numLabel))
+  dir.create(path = aDir)
+
+  # open connection
+  rFileCon <- file(description = file.path(aDir, 'params.txt'), open = 'wt')
+
+  # write parameter names and values
+  #  could lapply this and not copy paste?
+  writeLines(text = paste0('read_dir: ',read_dir), con = rFileCon, sep = '\n')
+  writeLines(text = paste0('write_dir: ',write_dir), con = rFileCon, sep = '\n')
+  writeLines(text = sexString, con = rFileCon, sep = '\n')
+  writeLines(text = paste0('patch_agg: ', patch_agg), con = rFileCon, sep = '\n')
+  # file.path actually combines the list in a really, really nice way!
+  #  It does keep extra qutoes, so removed those, then added tabs to make it print nicer
+  writeLines(text = paste0('goi: \t', paste0(gsub(pattern = "\"", replacement = "",
+                                                  fixed = TRUE, x = file.path(names(goi),
+                                                                              goi, fsep = '=')),
+                                             collapse = "\n\t")),
+             con = rFileCon, sep = '\n')
+  writeLines(text = paste0('drop_zero_goi: ', drop_zero_goi), con = rFileCon, sep = '\n')
+
+  # close parameter connection
+  close(con = rFileCon)
+
+
+  ##########
+  # Plotting
+  ##########
+  #  We need to convert wide-form data to long-form (cause ggplot stinks)
+  #  if we count well, and replicate labels properly, we can setup the vectors
+  #  in one step, without having to add loops or grow objects
+  # First, get variables necessary for building the output array.
+  # Second, replicate the naming variables
+  #  Based on how R does memory, we have to replicate each value equal to the
+  #  product of values in previous indexes, then replicate that group by the
+  #  product of values in future indexes. This is done with a double-rep() statement
+  #   rep( rep(values, each), times)
+  #     where "each"is the previous indexes and "times" the future ones
+  #     and the first/last indexes have a special case, since you never count yourself
+  #     in the product calculation.
+  #  setNames is used so that lapply keeps the index names, which data.frame
+  #   turns into column names
+  # Third, get data. which is super simple (once the naming is done)
+  nameDims <- dimnames(dataArray)
+  numDims <- length(nameDims)
+  numDLen <- lengths(nameDims)
+
+  plotData <- data.frame(
+    # state labels
+    lapply(X = setNames(object = 1:numDims, nm = names(nameDims)),
+           FUN = function(x){
+             rep.int(x = rep(x = nameDims[[x]],
+                             each = if(x == 1) 1 else prod(numDLen[1:(x-1)]) ),
+                     times = if(x == numDims) 1 else prod(numDLen[(x+1):numDims]) )}),
+    # value
+    "Count" = as.vector(dataArray)
+  )
+
+  # write output
+  write.table(x = plotData, file = file.path(aDir, 'plot.csv'),
+              sep = ',', row.names = FALSE, col.names = TRUE)
+
+
+  ##########
+  # Metrics
+  ##########
+  # Very similar to above - only difference is that we now collapse over the
+  #  "Repetitions" dimension.
+  # To simplify this, we calculate the quantile first, then get dimensions from that
+  # Lots of the dimensions are hard-coded, and the repetitions must be the first
+  #  dimension, in case that changes ever.
+  applyDims <- 2:5
+  quantData <- apply(X = dataArray, MARGIN = applyDims, FUN = quantile,
+                     probs = c(0.025, 0.5, 0.95), type = 8)
+
+  nameDims <- dimnames(quantData)[-1]
+  numDims <- length(nameDims)
+  numDLen <- lengths(nameDims)
+
+  metricData <- data.frame(
+    # set options - didn't like the "%" in the quantiles
+    check.names = FALSE,
+    # state labels
+    lapply(X = setNames(object = 1:numDims, nm = names(nameDims)),
+           FUN = function(x){
+             rep.int(x = rep(x = nameDims[[x]],
+                             each = if(x == 1) 1 else prod(numDLen[1:(x-1)]) ),
+                     times = if(x == numDims) 1 else prod(numDLen[(x+1):numDims]) )}),
+    # values
+    "Min" = as.vector(apply(X = dataArray, MARGIN = applyDims, FUN = min)),
+    "Mean" = as.vector(apply(X = dataArray, MARGIN = applyDims[-1], FUN = .colMeans, m=numReps, n=numDLen[['Sex']])),
+    "Max" = as.vector(apply(X = dataArray, MARGIN = applyDims, FUN = max)),
+    "2.5%" = as.vector(quantData[1, , , , ]),
+    "50%" = as.vector(quantData[2, , , , ]),
+    "97.5%" = as.vector(quantData[3, , , , ])
+  )
+
+  # write output
+  write.table(x = metricData, file = file.path(aDir, 'metrics.csv'),
+              sep = ',', row.names = FALSE, col.names = TRUE)
+
+} # end analyze_ggplot_CSV
