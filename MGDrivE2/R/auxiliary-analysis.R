@@ -1183,6 +1183,7 @@ analyze_ggplot_CSV <- function(read_dir, write_dir = read_dir, sex = "both", pat
   # Environment Setup
   ##########
   oldSeed <- .GlobalEnv$.Random.seed
+  set.seed(NULL)
   on.exit(.GlobalEnv$.Random.seed <- oldSeed)
 
 
@@ -1215,7 +1216,7 @@ analyze_ggplot_CSV <- function(read_dir, write_dir = read_dir, sex = "both", pat
   sexBool <- (sex == 'agg')
   sexString <- paste0('sex: ', paste0(sex, collapse = ', ')) # need the parameter later
   sex <- switch(EXPR = sex, 'm'='male', 'f'='female',
-                'both'=c('female','male'), 'agg'=c('female','male'))
+                'both'=c('female','male'), 'agg'=c('female','male'), sex)
 
   # check patch_agg
   if(!is.logical(patch_agg)){

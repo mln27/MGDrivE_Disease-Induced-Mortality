@@ -31,8 +31,8 @@ set.seed(1029384756)
 
 # Check that required packages are installed
 # This does not check that it's the proper version of V2!!!!
-if(!all(c('MGDrivE','MGDrivE2') %in% installed.packages()[ ,'Package']) ){
-  stop("Packages 'MGDrivE', 'MGDrivE2', and are required.")
+if(!all(c('MGDrivE','MGDrivE2','ggplot2') %in% installed.packages()[ ,'Package']) ){
+  stop("Packages 'MGDrivE', 'MGDrivE2', and 'ggplot2' are required.")
 }
 
 
@@ -118,8 +118,6 @@ paramCombo <- as.matrix(expand.grid('pF' = c(0.9),
                                     'sizeRel' = c(0.1)* totPopSize ))
 
 numPC <- NROW(paramCombo)
-
-# 46min
 
 
 ###############################################################################
@@ -303,40 +301,117 @@ print(paste0('Total: ', capture.output(difftime(time1 = Sys.time(), time2 = star
 ########################################
 ### Analysis
 ########################################
-# what kinds of analysis here?
-#  function to reduce by carrier/non-carrier?
-#  functions to reduce by allele-count?
-#  separate or combine by sex
-#  Remove 0 alleles?
-#    Is this covered by the reductions? Do the reductions need to count all alleles?
-#    If they don't, what happens to the statistics?
+# grab the parameter directories
+migDirs <- list.dirs(path = baseOut, full.names = TRUE, recursive = FALSE)
+migParamDirs <- lapply(X = migDirs, FUN = list.dirs, full.names = TRUE, recursive = FALSE)
 
+# taken from the cube, so I didn't have to rerun it
+genos <- c(
+"WWWW","GWWW","UWWW","RWWW","VWWW","SWWW","GGWW","GUWW","GRWW","GVWW",
+"GSWW","UUWW","RUWW","UVWW","SUWW","RRWW","RVWW","RSWW","VVWW","SVWW",
+"SSWW","WWHW","GWHW","UWHW","RWHW","VWHW","SWHW","GGHW","GUHW","GRHW",
+"GVHW","GSHW","UUHW","RUHW","UVHW","SUHW","RRHW","RVHW","RSHW","VVHW",
+"SVHW","SSHW","WWRW","GWRW","UWRW","RWRW","VWRW","SWRW","GGRW","GURW",
+"GRRW","GVRW","GSRW","UURW","RURW","UVRW","SURW","RRRW","RVRW","RSRW",
+"VVRW","SVRW","SSRW","WWEW","GWEW","UWEW","RWEW","VWEW","SWEW","GGEW",
+"GUEW","GREW","GVEW","GSEW","UUEW","RUEW","UVEW","SUEW","RREW","RVEW",
+"RSEW","VVEW","SVEW","SSEW","WWHH","GWHH","UWHH","RWHH","VWHH","SWHH",
+"GGHH","GUHH","GRHH","GVHH","GSHH","UUHH","RUHH","UVHH","SUHH","RRHH",
+"RVHH","RSHH","VVHH","SVHH","SSHH","WWHR","GWHR","UWHR","RWHR","VWHR",
+"SWHR","GGHR","GUHR","GRHR","GVHR","GSHR","UUHR","RUHR","UVHR","SUHR",
+"RRHR","RVHR","RSHR","VVHR","SVHR","SSHR","WWEH","GWEH","UWEH","RWEH",
+"VWEH","SWEH","GGEH","GUEH","GREH","GVEH","GSEH","UUEH","RUEH","UVEH",
+"SUEH","RREH","RVEH","RSEH","VVEH","SVEH","SSEH","WWRR","GWRR","UWRR",
+"RWRR","VWRR","SWRR","GGRR","GURR","GRRR","GVRR","GSRR","UURR","RURR",
+"UVRR","SURR","RRRR","RVRR","RSRR","VVRR","SVRR","SSRR","WWER","GWER",
+"UWER","RWER","VWER","SWER","GGER","GUER","GRER","GVER","GSER","UUER",
+"RUER","UVER","SUER","RRER","RVER","RSER","VVER","SVER","SSER","WWEE",
+"GWEE","UWEE","RWEE","VWEE","SWEE","GGEE","GUEE","GREE","GVEE","GSEE",
+"UUEE","RUEE","UVEE","SUEE","RREE","RVEE","RSEE","VVEE","SVEE","SSEE")
 
+# build the genotypes of interest
+#  have to do this because there's no total by default, and I want to see that
+goiList <- c(setNames(object = as.list(genos), nm = genos),
+             list("Total"=genos))
 
-
-
+# loop over parameter directories, do analysis!
+for(wDir in migParamDirs[[1]]){
+  MGDrivE2::analyze_ggplot_CSV(read_dir = wDir, sex = "both", patch_agg = FALSE,
+                               goi = goiList, drop_zero_goi = TRUE)
+}
 
 
 ########################################
 ### Plotting
 ########################################
-# something that works for now
-# redo with ggplot2
-# Throw save option in here - steal from fitting scripts?
+library(ggplot2)
 
+####################
+# Data
+####################
 # get dirs
-allDirs <- list.dirs(path = outDir, full.names = TRUE, recursive = FALSE)
+migDirs <- list.dirs(path = baseOut, full.names = TRUE, recursive = FALSE)
+migAnalysisDirs <- lapply(X = migDirs, FUN = function(x){
+  grep(pattern = "analysis_", x = list.dirs(path = x, full.names = TRUE), value = TRUE, fixed = TRUE)
+})
 
-# plot all reps from first parameter set
-# MGDrivE::plotMGDrivEMult(readDir = allDirs[1], lwd = 0.35, alpha = 0.75)
+# read 2 sets of summary data
+gPDat <- read.csv(file = file.path(migAnalysisDirs[[1]][6], "plot.csv"),
+                  header = TRUE, sep = ",")
+gMDat <- read.csv(file = file.path(migAnalysisDirs[[1]][6], "metrics.csv"),
+                  header = TRUE, sep = ",", check.names = FALSE)
+
+####################
+# Traces
+####################
+# data
+ggplot(data = gPDat ) +
+# color scheme and organization
+geom_path(aes(x = Time, y = Count, group = interaction(Repetitions, GOI),
+              color = GOI), alpha = 0.15) +
+facet_grid(Patch ~ Sex, scales = "free_y") +
+
+# # mean
+# geom_line(data = gMDat, mapping = aes(x = Time, y = Mean,
+#                                       group = interaction(GOI),
+#                                       color = GOI)) +
+
+# aesthetics
+theme_bw(base_size = 16) +
+ggtitle("Population Dynamics")
 
 
+####################
+# Mean + Quantiles
+####################
+# https://stackoverflow.com/questions/28586635/shade-region-between-two-lines-with-ggplot
+# https://stackoverflow.com/questions/22309285/how-to-use-a-variable-to-specify-column-name-in-ggplot
 
+# data + color scheme and organization
+ggplot(data = gMDat, aes(x = Time, y = Mean, group = interaction(GOI),
+              color = GOI), alpha = 0.15 ) +
+facet_grid(Patch ~ Sex, scales = "free_y") +
 
+# min/max lines
+#  not necessary, as geom_ribbon plots them as well
+# geom_line(data = gMDat, mapping = aes(x = Time, y = get("2.5%"),
+#                                       group = interaction(GOI),
+#                                       color = GOI), size = 0.5) +
+# geom_line(data = gMDat, mapping = aes(x = Time, y = get("97.5%"),
+#                                       group = interaction(GOI),
+#                                       color = GOI)) +
 
+# ribbon and fill
+geom_ribbon(data = gMDat, aes(ymin = get("2.5%"), ymax = get("97.5%"), fill = GOI),
+            alpha = 0.25, size = 0.0) +
 
-
-
+# mean
+geom_line(data = gMDat, mapping = aes(x = Time, y = Mean,
+                                      group = interaction(GOI),
+                                      color = GOI), size = 0.75) +
+# aesthetics
+theme_bw(base_size = 16) +
+ggtitle("Population Dynamics")
 
 
 

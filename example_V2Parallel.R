@@ -48,7 +48,7 @@ numCores <- 2
 ###############################################################################
 if(USER == 1){
   # Jared Laptop
-  baseOut<-'~/Desktop/OUTPUT/MGDrivE/V2_3'
+  baseOut<-'~/Desktop/OUTPUT/MGDrivE/V2'
 }else if(USER == 2){
   # ??
   baseOut<-''
@@ -457,141 +457,95 @@ print(paste0('All Sims: ', capture.output(difftime(time1 = Sys.time(), time2 = s
 ########################################
 ### Analysis
 ########################################
-# what kinds of analysis here?
-#  function to reduce by carrier/non-carrier?
-#  functions to reduce by allele-count?
-#  separate or combine by sex
-#  Remove 0 alleles?
-#    Is this covered by the reductions? Do the reductions need to count all alleles?
-#    If they don't, what happens to the statistics?
+# grab the parameter directories
+migDirs <- list.dirs(path = baseOut, full.names = TRUE, recursive = FALSE)
+migParamDirs <- lapply(X = migDirs, FUN = list.dirs, full.names = TRUE, recursive = FALSE)
 
+# taken from the cube, so I didn't have to rerun it
+genos <- c("WW","GW","UW","RW","VW","HW","SW","GG","GU","GR","GV","GH","GS","UU",
+           "RU","UV","HU","SU","RR","RV","HR","RS","VV","HV","SV","HH","HS","SS")
 
+# build the genotypes of interest
+#  have to do this because there's no total by default, and I want to see that
+goiList <- c(setNames(object = as.list(genos), nm = genos),
+             list("Total"=genos))
 
-
-
+# loop over parameter directories, do analysis!
+for(wDir in migParamDirs[[1]]){
+  MGDrivE2::analyze_ggplot_CSV(read_dir = wDir, sex = "both", patch_agg = FALSE,
+                               goi = goiList, drop_zero_goi = TRUE)
+}
 
 
 ########################################
 ### Plotting
 ########################################
-# something that works for now
-# redo with ggplot2
-# Throw save option in here - steal from fitting scripts?
+library(ggplot2)
 
+####################
+# Data
+####################
 # get dirs
-allDirs <- list.dirs(path = outDir, full.names = TRUE, recursive = FALSE)
+migDirs <- list.dirs(path = baseOut, full.names = TRUE, recursive = FALSE)
+migAnalysisDirs <- lapply(X = migDirs, FUN = function(x){
+  grep(pattern = "analysis_", x = list.dirs(path = x, full.names = TRUE), value = TRUE, fixed = TRUE)
+})
 
-# plot all reps from first parameter set
-# MGDrivE::plotMGDrivEMult(readDir = allDirs[1], lwd = 0.35, alpha = 0.75)
+# read 2 sets of summary data
+gPDat <- read.csv(file = file.path(migAnalysisDirs[[1]][6], "plot.csv"),
+                  header = TRUE, sep = ",")
+gMDat <- read.csv(file = file.path(migAnalysisDirs[[1]][6], "metrics.csv"),
+                  header = TRUE, sep = ",", check.names = FALSE)
 
+####################
+# Traces
+####################
+# data
+ggplot(data = gPDat ) +
+# color scheme and organization
+geom_path(aes(x = Time, y = Count, group = interaction(Repetitions, GOI),
+              color = GOI), alpha = 0.15) +
+facet_grid(Patch ~ Sex, scales = "free_y") +
 
-# v1 plot function doesn't work because we changed the way patches are labeled.
-# need to make sure new analysis functions are agnostic to that somehow.
+# # mean
+# geom_line(data = gMDat, mapping = aes(x = Time, y = Mean,
+#                                       group = interaction(GOI),
+#                                       color = GOI)) +
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+# aesthetics
+theme_bw(base_size = 16) +
+ggtitle("Population Dynamics")
 
 
+####################
+# Mean + Quantiles
+####################
+# https://stackoverflow.com/questions/28586635/shade-region-between-two-lines-with-ggplot
+# https://stackoverflow.com/questions/22309285/how-to-use-a-variable-to-specify-column-name-in-ggplot
 
+# data + color scheme and organization
+ggplot(data = gMDat, aes(x = Time, y = Mean, group = interaction(GOI),
+              color = GOI), alpha = 0.15 ) +
+facet_grid(Patch ~ Sex, scales = "free_y") +
 
-# ###############################################################################
-# ### crap to clean up later
-# ###############################################################################
-# ####################
-# ## Equilibrium and Hazards
-# ####################
-# # calculate equilibrium and setup initial conditions
-# initialCons <- equilibrium_lifeycle(params = theta, NF = NF, phi = 0.5,
-#                                     log = TRUE, spn_P = SPN_P, cube = cube)
-#
-# # approximate hazards for continous approximation
-# approx_hazards <- spn_hazards(spn_P = SPN_P, spn_T = SPN_T, cube = cube,
-#                               params = initialCons$params, type = "life",
-#                               log = TRUE, exact = FALSE, tol = 1e-8,
-#                               verbose = FALSE)
-#
-# # exact hazards for integer-valued state space
-# exact_hazards <- spn_hazards(spn_P = SPN_P, spn_T = SPN_T, cube = cube,
-#                              params = initialCons$params, type = "life",
-#                              log = TRUE, exact = TRUE, tol = NaN,
-#                              verbose = FALSE)
-#
-#
-# ####################
-# ## Simulate
-# ####################
-# # deterministic
-# ODE_out <- sim_trajectory_R(x0 = initialCons$M0, tmax = tmax, dt = dt, S = S,
-#                             hazards = approx_hazards, sampler = "ode", method = "lsoda",
-#                             events = events, verbose = TRUE)
-#
-# # tau sampling
-# PTS_out <- sim_trajectory_R(x0 = initialCons$M0, tmax = tmax, dt = dt, num_reps = nReps,
-#                             dt_stoch = dt_stoch, S = S, hazards = exact_hazards,
-#                             sampler = "tau", events = events, verbose = TRUE)
-#
-#
-# ####################
-# ## Analyze and Plot
-# ####################
-# ##########
-# # Deterministic
-# ##########
-# # summarize females by genotype
-# ODE_out_f <- summarize_females(out = ODE_out$state, spn_P = SPN_P)
-#
-# # summarize males by genotype
-# ODE_out_m <- summarize_males(out = ODE_out$state)
-#
-# # add sex for plotting
-# ODE_out_f$sex <- "Female"
-# ODE_out_m$sex <- "Male"
-#
-# # plot
-# ggplot(data = rbind(ODE_out_f, ODE_out_m)) +
-#   geom_line(aes(x = time, y = value, color = genotype)) +
-#   facet_wrap(facets = vars(sex), scales = "fixed") +
-#   theme_bw() +
-#   ggtitle("SPN: ODE Solution")
-#
-#
-# ##########
-# # Stochastic
-# ##########
-# # summarize females/males
-# PTS_out_f <- summarize_females(out = PTS_out$state, spn_P = SPN_P)
-# PTS_out_m <- summarize_males(out = PTS_out$state)
-#
-# # add sex for plotting
-# PTS_out_f$sex <- "Female"
-# PTS_out_m$sex <- "Male"
-#
-# # plot adults
-# ggplot(data = rbind(PTS_out_f, PTS_out_m)) +
-#   geom_line(aes(x = time, y = value, color = genotype)) +
-#   facet_wrap(facets = vars(sex), scales = "fixed") +
-#   theme_bw() +
-#   ggtitle("SPN: Tau-leaping Approximation")
+# min/max lines
+#  not necessary, as geom_ribbon plots them as well
+# geom_line(data = gMDat, mapping = aes(x = Time, y = get("2.5%"),
+#                                       group = interaction(GOI),
+#                                       color = GOI), size = 0.5) +
+# geom_line(data = gMDat, mapping = aes(x = Time, y = get("97.5%"),
+#                                       group = interaction(GOI),
+#                                       color = GOI)) +
 
+# ribbon and fill
+geom_ribbon(data = gMDat, aes(ymin = get("2.5%"), ymax = get("97.5%"), fill = GOI),
+            alpha = 0.25, size = 0.0) +
 
+# mean
+geom_line(data = gMDat, mapping = aes(x = Time, y = Mean,
+                                      group = interaction(GOI),
+                                      color = GOI), size = 0.75) +
+# aesthetics
+theme_bw(base_size = 16) +
+ggtitle("Population Dynamics")
 
