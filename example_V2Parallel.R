@@ -470,6 +470,16 @@ genos <- c("WW","GW","UW","RW","VW","HW","SW","GG","GU","GR","GV","GH","GS","UU"
 goiList <- c(setNames(object = as.list(genos), nm = genos),
              list("Total"=genos))
 
+# # example of counting alleles instead of genotypes
+# goiList <- list("W"=c("WW","WW","GW","UW","RW","VW","HW","SW"),
+#                 "G"=c("GW","GG","GG","GU","GR","GV","GH","GS"),
+#                 "H"=c("HW","GH","HU","HR","HV","HH","HH","HS"),
+#                 "U"=c("UW","GU","UU","UU","RU","UV","HU","SU"),
+#                 "R"=c("RW","GR","RU","RR","RR","RV","HR","RS"),
+#                 "V"=c("VW","GV","UV","RV","VV","VV","HV","SV"),
+#                 "S"=c("SW","GS","SU","RS","SV","HS","SS","SS"),
+#                 "Total"=c(genos, genos))
+
 # loop over parameter directories, do analysis!
 for(wDir in migParamDirs[[1]]){
   MGDrivE2::analyze_ggplot_CSV(read_dir = wDir, sex = "both", patch_agg = FALSE,
