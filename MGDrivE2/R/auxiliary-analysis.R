@@ -1180,6 +1180,26 @@ analyze_ggplot_CSV <- function(read_dir, write_dir = read_dir, sex = "both", pat
                                goi = NULL, drop_zero_goi = TRUE){
 
   ##########
+  # Hash Input
+  ##########
+  # Building the string is fine
+  # The hashcode function doesn't work.
+  #  Numerical instability dops all precision, and leaves the answer as NA
+  #  This is a problem in R, and exists with the R.oo package
+  #  My guess is that compiled languages overflow in "real-time", as doing the
+  #  calculations, which is why complete precision is never lost. I don't know
+  #  if it's possible to do that in R.
+  # SO - I like this idea, I haven't figured out how to pull it off.
+
+  # # if-else to handle null and unlist the list
+  # # c() because I want it all as one string, not with diffeent pieces
+  # hashString <- paste0(c(read_dir, write_dir, sex, patch_agg,
+  #                        if(is.null(goi)){"NULL"}else{unlist(goi)},
+  #                        drop_zero_goi), collapse = "")
+  # paramHash <- genHash(str2hash = hashString)
+
+
+  ##########
   # Environment Setup
   ##########
   oldSeed <- .GlobalEnv$.Random.seed
@@ -1493,3 +1513,75 @@ analyze_ggplot_CSV <- function(read_dir, write_dir = read_dir, sex = "both", pat
               sep = ',', row.names = FALSE, col.names = TRUE)
 
 } # end analyze_ggplot_CSV
+
+################################################################################
+# Plotting and Metrics Summary Function - Helpers
+################################################################################
+# Taking most of the hashcode stuff from R.oo
+#  R has no hashcode ability, and no ability to convert characters to their ASCII
+#  values.
+#
+# Everything below here is right, but doesn't work.
+# Numerical issues in the hashcode function returns NAs.
+# This is true in R.oo as well, and why they only tested on _short_ strings.
+# I'm not sure what a solution is for this.
+
+# ####################
+# # ASCII conversion table
+# ####################
+# # https://github.com/HenrikBengtsson/R.oo/blob/develop/R/ASCII.R
+#
+# # Idea by Peter Dalgaard, Dept. of Biostatistics, University of Copenhagen, Denmark.
+# ASCII <- c("", sapply(1:255, function(i) parse(text=paste("\"\\",
+#                    structure(i,class="octmode"), "\"", sep=""))[[1]]) )
+#
+# # We removed ASCII 0x00, because it represents an empty string in
+# # R v2.7.0 (and maybe some earlier version) and in R v2.8.0 we will get
+# # a warning.  However, for backward compatibility we will still use it
+# # for version prior to R v2.7.0.  See also email from Brian Ripley
+# # on 2008-04-23 on this problem.
+# if(compareVersion(as.character(getRversion()), "2.7.0") < 0) {
+#   ASCII[1] <- eval(parse(text="\"\\000\""))
+# }
+#
+# ####################
+# # Int Conversion
+# ####################
+# # taken from R.oo
+# #  not sure this is really the "right" handling - should wrap around and lose
+# #  the significant bits.
+# # https://en.wikipedia.org/wiki/Integer_overflow
+# D2I <- function(x) {
+#   intMin <- -2147483648
+#   intMax <- 2147483647
+#   intRange <- intMax - intMin + 1
+#
+#   return(as.integer( (x-intMin) %% intRange + intMin ))
+# }
+#
+# ####################
+# # Hashcode
+# ####################
+# # this is loosely based on R.oo "hashcode" function, which is heavily based on
+# #  the java string hashcode, which sucks.
+# # replacing primes 31 and 0 with 109 and 1
+# # vectorizing the calculation
+# # https://vanilla-java.github.io/2018/08/12/Why-do-I-think-Stringhash-Code-is-poor.html
+# # https://stackoverflow.com/questions/15518418/whats-behind-the-hashcode-method-for-string-in-java
+# # https://stackoverflow.com/questions/113511/best-implementation-for-hashcode-method-for-a-collection
+# genHash <- function(str2hash){
+#
+#   # split string into chars
+#   strVec <- strsplit(x = str2hash, split = NULL, fixed = TRUE)[[1]]
+#
+#   # convert chars to ascii values
+#   #  this is taken from R.oo
+#   intVec <- match(x = strVec, table = ASCII)
+#
+#   # vectorize hash calculation
+#   lenIV <- length(intVec)
+#   hashD <- sum(109L^lenIV, 109L^((lenIV-1L):0L) * intVec)
+#
+#   # convert to integer and return
+#   return(D2I(hashD))
+# }
