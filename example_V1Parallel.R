@@ -40,7 +40,7 @@ if(!all(c('MGDrivE','MGDrivE2','ggplot2') %in% installed.packages()[ ,'Package']
 ## Experimental Setup and Paths Definition
 ###############################################################################
 USER <- 1
-numRep <- 5
+numRep <- 3
 numCores <- 2
 
 ###############################################################################
@@ -63,12 +63,16 @@ repNames <- formatC(x = 1:numRep, width = 3, format = 'd', flag = '0')
 ########################################
 ## Raw Inputs
 ########################################
-simTime <- 1*365
+simTime <- 2*365
 sampTime <- 1
 
 # gd releases
-relStart <- 60
-relInt <- 7
+relStart1 <- 60
+relInt1 <- 7
+
+# sem releases
+relStart2 <- 300
+relInt2 <- 7
 
 # default bio parameters and population size
 bioParameters <- list('betaK'=20, 'tEgg'=5, 'tLarva'=6, 'tPupa'=4, 'popGrowth'=1.175, 'muAd'=0.09)
@@ -113,9 +117,11 @@ paramCombo <- as.matrix(expand.grid('pF' = c(0.9),
                                     'cF' = c(0.9),
                                     'xF' = c(0.9),
                                     'yF' = c(0.9),
-                                    'mmrF' = 0.05,
-                                    'numRel' = seq.int(from = 0, to = 5, by = 1),
-                                    'sizeRel' = c(0.1)* totPopSize ))
+                                    'mmrF' = 0.00,
+                                    'numRel1' = seq.int(from = 0, to = 2, by = 1),
+                                    'sizeRel1' = c(0.1)* totPopSize,
+                                    'numRel2' = seq.int(from = 0, to = 2, by = 1),
+                                    'sizeRel2' = c(0.1)* totPopSize ))
 
 numPC <- NROW(paramCombo)
 
@@ -201,8 +207,10 @@ for(mR in migRates){
     runFolders <- file.path(outDir,
                             paste0(c(formatC(x = paramCombo[x,c('pF','qF','rF','aF','bF','cF','xF','yF','mmrF')]*1000,
                                              width = 4, format = 'd', flag = '0'),
-                                     formatC(x = paramCombo[[x,'numRel']], width = 2, format = 'd', flag = '0'),
-                                     formatC(x = paramCombo[[x,'sizeRel']], width = 4, format = 'd', flag = '0')),
+                                     formatC(x = paramCombo[[x,'numRel1']], width = 2, format = 'd', flag = '0'),
+                                     formatC(x = paramCombo[[x,'sizeRel1']], width = 4, format = 'd', flag = '0'),
+                                     formatC(x = paramCombo[[x,'numRel2']], width = 2, format = 'd', flag = '0'),
+                                     formatC(x = paramCombo[[x,'sizeRel2']], width = 4, format = 'd', flag = '0')),
                                    collapse = '_'),
                             repNames)
 
@@ -232,13 +240,34 @@ for(mR in migRates){
 
     # generate releases at the specified times
     # safety for when there are no releases
-    if(paramCombo[x,'numRel'] !=0){
+    if(paramCombo[x,'numRel1'] !=0){
       patchReleases[[1]]$maleReleases <- MGDrivE::generateReleaseVector(driveCube = cube,
-                                                                        releasesParameters = list('releasesStart'=relStart,
-                                                                                                  'releasesNumber'=paramCombo[x,'numRel'],
-                                                                                                  'releasesInterval'=relInt,
-                                                                                                  'releaseProportion'=paramCombo[x,'sizeRel']))
-    }
+                                                                        releasesParameters = list('releasesStart'=relStart1,
+                                                                                                  'releasesNumber'=paramCombo[x,'numRel1'],
+                                                                                                  'releasesInterval'=relInt1,
+                                                                                                  'releaseProportion'=paramCombo[x,'sizeRel1']))
+
+      # check for SEM releases
+      #  if we don't do GD releases, no point in doing SEM releases
+      if(paramCombo[x,'numRel2'] !=0){
+        # again, do male releases
+
+        # swap the "releaseType"in the cube for now, so that we don't have to mess with
+        #  the underlying code
+        oRT <- cube$releaseType
+        cube$releaseType <- "WWHH"
+
+        patchReleases[[1]]$maleReleases <- c(patchReleases[[1]]$maleReleases,
+                                             MGDrivE::generateReleaseVector(driveCube = cube,
+                                                                            releasesParameters = list('releasesStart'=relStart2,
+                                                                                                      'releasesNumber'=paramCombo[x,'numRel2'],
+                                                                                                      'releasesInterval'=relInt2,
+                                                                                                      'releaseProportion'=paramCombo[x,'sizeRel2'])))
+        # reset release type
+        cube$releaseType <- oRT
+
+      } # end SEM releases
+    } # end GD releases
 
     ####################
     # Parameters
@@ -288,7 +317,6 @@ for(mR in migRates){
   # print time it took
   print(paste0('  Sims: ', capture.output(difftime(time1 = Sys.time(), time2 = startTimeLand))))
 
-
 }# end loop over migration rates
 
 # print time it took
@@ -331,8 +359,8 @@ genos <- c(
 
 # build the genotypes of interest
 #  have to do this because there's no total by default, and I want to see that
-goiList <- c(setNames(object = as.list(genos), nm = genos),
-             list("Total"=genos))
+goiList <- c(list("Total"=genos),setNames(object = as.list(genos), nm = genos)
+             )
 
 # loop over parameter directories, do analysis!
 for(wDir in migParamDirs[[1]]){
@@ -357,10 +385,10 @@ migAnalysisDirs <- lapply(X = migDirs, FUN = function(x){
 
 # read 2 sets of summary data
 # columns: "Repetitions" "Sex" "Patch" "Time" "GOI" "Count"
-gPDat <- read.csv(file = file.path(migAnalysisDirs[[1]][6], "plot.csv"),
+gPDat <- read.csv(file = file.path(migAnalysisDirs[[1]][9], "plot.csv"),
                   header = TRUE, sep = ",")
 # columns: "Sex" "Patch" "Time" "GOI" "Min" "Mean" "Max" "2.5%" "50%" "97.5%"
-gMDat <- read.csv(file = file.path(migAnalysisDirs[[1]][6], "metrics.csv"),
+gMDat <- read.csv(file = file.path(migAnalysisDirs[[1]][9], "metrics.csv"),
                   header = TRUE, sep = ",", check.names = FALSE)
 
 ####################
@@ -370,7 +398,7 @@ gMDat <- read.csv(file = file.path(migAnalysisDirs[[1]][6], "metrics.csv"),
 ggplot(data = gPDat ) +
 # color scheme and organization
 geom_path(aes(x = Time, y = Count, group = interaction(Repetitions, GOI),
-              color = GOI), alpha = 0.15) +
+              color = GOI), alpha = 0.35) +
 facet_grid(Patch ~ Sex, scales = "free_y") +
 
 # # mean

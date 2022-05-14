@@ -69,8 +69,8 @@
 #' @param bF Rate of SSA during SEM process in females
 #' @param cF Rate of "V" allele formation from SSA during SEM process in females
 #'
-#' @param mmrF Rate of MMR in females, driving allelic conversion of "V" into "W"
-#' @param mmrM Rate of MMR in males, driving allelic conversion of "V" into "W"
+#' @param mmrF Rate of MMR in females, driving allelic conversion of "V" into "X"
+#' @param mmrM Rate of MMR in males, driving allelic conversion of "V" into "X"
 #'
 #' @param pDep Rate of cleavage during maternal deposition
 #'

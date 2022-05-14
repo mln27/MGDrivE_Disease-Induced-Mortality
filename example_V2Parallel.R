@@ -42,13 +42,13 @@ if(!all(c('MGDrivE','MGDrivE2','ggplot2','Matrix') %in% installed.packages()[ ,'
 ## Experimental Setup and Paths Definition
 ###############################################################################
 USER <- 1
-numRep <- 5
+numRep <- 4
 numCores <- 2
 
 ###############################################################################
 if(USER == 1){
   # Jared Laptop
-  baseOut<-'~/Desktop/OUTPUT/MGDrivE/V2'
+  baseOut<-'~/Desktop/OUTPUT/MGDrivE/V2_3'
 }else if(USER == 2){
   # ??
   baseOut<-''
@@ -65,7 +65,7 @@ repNames <- formatC(x = 1:numRep, width = 3, format = 'd', flag = '0')
 ########################################
 ## Raw Inputs
 ########################################
-simTime <- 1*365
+simTime <- 2*365
 sampTime <- 1
 dtStoch <- 0.1
 
@@ -146,8 +146,8 @@ paramCombo <- as.matrix(expand.grid('pF' = c(0.9),
                                     'aF' = c(0.9),
                                     'bF' = c(0.9),
                                     'cF' = c(0.9),
-                                    'mmrF' = 0.05,
-                                    'numRel1' = seq.int(from = 0, to = 5, by = 1),
+                                    'mmrF' = 0.00,
+                                    'numRel1' = seq.int(from = 0, to = 3, by = 1),
                                     'sizeRel1' = c(0.1)* numFem*2,
                                     'numRel2' = seq.int(from = 30, to = 60, by = 30) ))
 
@@ -279,14 +279,13 @@ for(mR in migRates){
       relNode <- if( numPatch>1 ) '_1' else ''
 
       # make sure we're performing releases, otherwise skip everything
-      gdEvents <- data.frame('var' = paste0('F_', cube$releaseType, '_', cube$wildType, relNode),
+      gdEvents <- data.frame('var' = paste0('M_', cube$releaseType, relNode),
                              'time' = seq(from = relStart1,
                                           length.out = paramCombo[[nP, 'numRel1']],
                                           by = relInt1),
                              'value' = paramCombo[[nP, 'sizeRel1']],
                              'method' = 'add',
                              stringsAsFactors = FALSE)
-
 
       if(paramCombo[[nP,'numRel2']] > 0){
         # make sure we're doing SEM spraying, otherwise skip
@@ -304,16 +303,16 @@ for(mR in migRates){
         #
         # females <- file.path("F_",rep(g, each = nG),"_",g, fsep = "")
         # females <- file.path("F_",rep(g, each = nG),"_",g,"_",node_id, fsep = "")
-        uEvents <- data.frame('var' = rep(file.path("U_", swapMat[ ,"off"], relNode, fsep = ''),
+        uEvents <- data.frame('var' = rep(file.path("U_", swapMat[ ,"on"], relNode, fsep = ''),
                                           each = paramCombo[[nP,'numRel2']]),
-                              'value' = rep(file.path("U_", swapMat[ ,"on"], relNode, fsep = ''),
+                              'value' = rep(file.path("U_", swapMat[ ,"off"], relNode, fsep = ''),
                                           each = paramCombo[[nP,'numRel2']]),
                               'time' = timeVar,
                               'method' = "swap")
 
-        mEvents <- data.frame('var' = rep(file.path("M_", swapMat[ ,"off"], relNode, fsep = ''),
+        mEvents <- data.frame('var' = rep(file.path("M_", swapMat[ ,"on"], relNode, fsep = ''),
                                           each = paramCombo[[nP,'numRel2']]),
-                              'value' = rep(file.path("M_", swapMat[ ,"on"], relNode, fsep = ''),
+                              'value' = rep(file.path("M_", swapMat[ ,"off"], relNode, fsep = ''),
                                           each = paramCombo[[nP,'numRel2']]),
                               'time' = timeVar,
                               'method' = "swap")
@@ -324,15 +323,15 @@ for(mR in migRates){
         #  this will fail if the nodeID string is duplicated in the genotypes somehow
         if(numPatch>1 ) femHold <- grep(pattern = relNode, x = femHold, fixed = TRUE, value = TRUE)
         # grap only the states with impacted genotypes
-        femVar <- grep(pattern = paste0(swapMat[ ,"off"], collapse = "|"), x = femHold, value = TRUE)
+        femVal <- grep(pattern = paste0(swapMat[ ,"off"], collapse = "|"), x = femHold, value = TRUE)
         # swap appropriate genotypes
-        femValue <- femVar
+        femVar <- femVal
         for(i in 1:NROW(swapMat)){
-          femValue <- gsub(pattern = swapMat[i,"off"], replacement = swapMat[i,"on"], x = femValue, fixed = TRUE)
+          femVar <- gsub(pattern = swapMat[i,"off"], replacement = swapMat[i,"on"], x = femVar, fixed = TRUE)
         }
         # female events
         fEvents <- data.frame('var' = rep(femVar, each = paramCombo[[nP,'numRel2']]),
-                              'value' = rep(femValue, each = paramCombo[[nP,'numRel2']]),
+                              'value' = rep(femVal, each = paramCombo[[nP,'numRel2']]),
                               'time' = timeVar,
                               'method' = "swap")
 
@@ -465,24 +464,24 @@ migParamDirs <- lapply(X = migDirs, FUN = list.dirs, full.names = TRUE, recursiv
 genos <- c("WW","GW","UW","RW","VW","HW","SW","GG","GU","GR","GV","GH","GS","UU",
            "RU","UV","HU","SU","RR","RV","HR","RS","VV","HV","SV","HH","HS","SS")
 
-# build the genotypes of interest
-#  have to do this because there's no total by default, and I want to see that
-goiList <- c(setNames(object = as.list(genos), nm = genos),
-             list("Total"=genos))
+# # build the genotypes of interest
+# #  have to do this because there's no total by default, and I want to see that
+# goiList <- c(setNames(object = as.list(genos), nm = genos),
+#              list("Total"=genos))
 
-# # example of counting alleles instead of genotypes
-# goiList <- list("W"=c("WW","WW","GW","UW","RW","VW","HW","SW"),
-#                 "G"=c("GW","GG","GG","GU","GR","GV","GH","GS"),
-#                 "H"=c("HW","GH","HU","HR","HV","HH","HH","HS"),
-#                 "U"=c("UW","GU","UU","UU","RU","UV","HU","SU"),
-#                 "R"=c("RW","GR","RU","RR","RR","RV","HR","RS"),
-#                 "V"=c("VW","GV","UV","RV","VV","VV","HV","SV"),
-#                 "S"=c("SW","GS","SU","RS","SV","HS","SS","SS"),
-#                 "Total"=c(genos, genos))
+# example of counting alleles instead of genotypes
+goiList <- list("W"=c("WW","WW","GW","UW","RW","VW","HW","SW"),
+                "G"=c("GW","GG","GG","GU","GR","GV","GH","GS"),
+                "H"=c("HW","GH","HU","HR","HV","HH","HH","HS"),
+                "U"=c("UW","GU","UU","UU","RU","UV","HU","SU"),
+                "R"=c("RW","GR","RU","RR","RR","RV","HR","RS"),
+                "V"=c("VW","GV","UV","RV","VV","VV","HV","SV"),
+                "S"=c("SW","GS","SU","RS","SV","HS","SS","SS"),
+                "Total"=c(genos, genos))
 
 # loop over parameter directories, do analysis!
 for(wDir in migParamDirs[[1]]){
-  MGDrivE2::analyze_ggplot_CSV(read_dir = wDir, sex = "both", patch_agg = FALSE,
+  MGDrivE2::analyze_ggplot_CSV(read_dir = wDir, sex = "agg", patch_agg = FALSE,
                                goi = goiList, drop_zero_goi = TRUE)
 }
 
@@ -503,10 +502,10 @@ migAnalysisDirs <- lapply(X = migDirs, FUN = function(x){
 
 # read 2 sets of summary data
 # columns: "Repetitions" "Sex" "Patch" "Time" "GOI" "Count"
-gPDat <- read.csv(file = file.path(migAnalysisDirs[[1]][6], "plot.csv"),
+gPDat <- read.csv(file = file.path(migAnalysisDirs[[1]][8], "plot.csv"),
                   header = TRUE, sep = ",")
 # columns: "Sex" "Patch" "Time" "GOI" "Min" "Mean" "Max" "2.5%" "50%" "97.5%"
-gMDat <- read.csv(file = file.path(migAnalysisDirs[[1]][6], "metrics.csv"),
+gMDat <- read.csv(file = file.path(migAnalysisDirs[[1]][8], "metrics.csv"),
                   header = TRUE, sep = ",", check.names = FALSE)
 
 ####################
@@ -516,7 +515,7 @@ gMDat <- read.csv(file = file.path(migAnalysisDirs[[1]][6], "metrics.csv"),
 ggplot(data = gPDat ) +
 # color scheme and organization
 geom_path(aes(x = Time, y = Count, group = interaction(Repetitions, GOI),
-              color = GOI), alpha = 0.15) +
+              color = GOI), alpha = 0.35) +
 facet_grid(Patch ~ Sex, scales = "free_y") +
 
 # # mean

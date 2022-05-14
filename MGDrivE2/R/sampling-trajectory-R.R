@@ -38,9 +38,23 @@
 #' package, see \code{\link[deSolve]{ode}}. For inhomogeneous systems, consider
 #' using the "rk4" method to avoid excessive integration times.
 #'
-#' Additionally, \code{events} objects must follow the format required by
-#' \code{deSolve}. This was done for consistency, see \code{\link[deSolve]{events}}
-#' for more information.
+#' Additionally, \code{events} objects may be used for "releases", and must follow
+#' the format required by \code{deSolve}. This means that events must be a \code{data.frame}
+#' with four columns - \code{var}, \code{time}, \code{value}, and \code{method} -
+#' in any order and \code{stringsAsFactors = FALSE}. \code{Events} currently must be one of two types:
+#' \itemize{
+#'  \item: 'add': When the \code{method} is \code{add}, this represents a classic
+#'         release scenario. Appropriate values from the \code{value} column are
+#'         added to the state defined in the \code{var} column at the appropriate
+#'         moments as defined in the \code{time} column.
+#'  \item: 'swap': The \code{swap} method is similar to a small-molecule spray, where
+#'         a chemical is applied to the landscape and "turns-on" or "turns-off"
+#'         genotypes. This functionality uses the states defined in the \code{value}
+#'         column to move the counts within those states to states defined in the
+#'         \code{var} column. Then, the state specified in the \code{value} column
+#'         is set to \code{0}, effectively "swapping" \code{value} into \code{var}.
+#'         Again, these events occur as specified in the \code{time} column.
+#' }
 #'
 #' This function tracks state variables by default; an optional argument \code{Sout}
 #' can be provided to track number of event firings each time step (for discrete stochastic simulations),
@@ -432,7 +446,7 @@ sim_trajectory_base_R <- function(x0, times, num_reps, stepFun, events = NULL,
                    state$x[events[eventIdx,"var"]] <- state$x[events[eventIdx,"var"]] + events[eventIdx,"value"]
                  },
                  {# swap
-                   state$x[events[eventIdx,"var"]] <- state$x[events[eventIdx,"value"]]
+                   state$x[events[eventIdx,"var"]] <- state$x[events[eventIdx,"var"]] + state$x[events[eventIdx,"value"]]
                    state$x[events[eventIdx,"value"]] <- 0
                  }
                  ) # end switch

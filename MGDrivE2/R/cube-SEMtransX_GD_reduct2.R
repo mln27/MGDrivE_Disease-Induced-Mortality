@@ -90,8 +90,8 @@
 #'
 #' @param xM Rate of cleavage during GD process on SEM allele in males
 #'
-#' @param mmrF Rate of MMR in females, driving allelic conversion of "V" into "W"
-#' @param mmrM Rate of MMR in males, driving allelic conversion of "V" into "W"
+#' @param mmrF Rate of MMR in females, driving allelic conversion of "V" into "X"
+#' @param mmrM Rate of MMR in males, driving allelic conversion of "V" into "X"
 #'
 #' @param pDep Rate of cleavage during maternal deposition into W allele from GD
 #'
