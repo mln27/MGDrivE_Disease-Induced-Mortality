@@ -60,7 +60,7 @@ step_PTS <- function(S,Sout,haz,dt=0.01,maxhaz=1e6){
 
       # tracking events
       if(track){
-        ovec <- rep(0,o) # output vetor at t=t0
+        ovec <- double(length = o) # output vector at t=t0
       } else {
         ovec <- NULL
       }
@@ -78,13 +78,38 @@ step_PTS <- function(S,Sout,haz,dt=0.01,maxhaz=1e6){
         r <- rpois(n = v,lambda = h*dt)
 
         # update state and event tracking
-        x <- x+as.vector(S %*% r)
+        x <- x + as.vector(S %*% r)
         if(track){
           ovec <- ovec + as.vector(Sout %*% r)
         }
 
         x[x<0] <- 0 # absorption at zero
         tNow <- tNow+dt # update time
+
+
+
+        # # jared testing
+        # # this does help, but compared to haz(), not worth anything
+        # # sample event firings
+        # idx <- which(h > 0)
+        # r <- rpois(n = length(idx), lambda = h[idx]*dt)
+        #
+        # # update state and event tracking
+        # x <- x + as.vector(S[ ,idx] %*% r)
+        # if(track){
+        #   ovec <- ovec + as.vector(Sout[ ,idx] %*% r)
+        # }
+        #
+        # # idx <- which(x<0)
+        # # if(length(idx)>0){
+        # #   x[idx] <- 0 # absorption at zero
+        # # }
+        # x[which(x<0)] <- 0 # absorption at zero
+        # tNow <- tNow+dt # update time
+
+
+
+
 
         # return condition
         if(tNow > termt){

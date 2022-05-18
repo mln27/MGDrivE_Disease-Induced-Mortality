@@ -48,7 +48,7 @@ numCores <- 2
 ###############################################################################
 if(USER == 1){
   # Jared Laptop
-  baseOut<-'~/Desktop/OUTPUT/MGDrivE/V2_3'
+  baseOut<-'~/Desktop/OUTPUT/MGDrivE/V2_test'
 }else if(USER == 2){
   # ??
   baseOut<-''
@@ -147,9 +147,9 @@ paramCombo <- as.matrix(expand.grid('pF' = c(0.9),
                                     'bF' = c(0.9),
                                     'cF' = c(0.9),
                                     'mmrF' = 0.00,
-                                    'numRel1' = seq.int(from = 0, to = 3, by = 1),
+                                    'numRel1' = seq.int(from = 3, to = 3, by = 1),
                                     'sizeRel1' = c(0.1)* numFem*2,
-                                    'numRel2' = seq.int(from = 30, to = 60, by = 30) ))
+                                    'numRel2' = seq.int(from = 60, to = 60, by = 30) ))
 
 numPC <- NROW(paramCombo)
 

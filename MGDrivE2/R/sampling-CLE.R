@@ -65,7 +65,7 @@ step_CLE <- function(S,Sout,haz,dt=0.01,maxhaz=1e6){
 
            # tracking events
            if(track){
-             ovec <- rep(0,o) # output vetor at t=t0
+             ovec <- double(length = o) # output vector at t=t0
            } else {
              ovec <- NULL
            }
@@ -94,10 +94,10 @@ step_CLE <- function(S,Sout,haz,dt=0.01,maxhaz=1e6){
              dw <- rnorm(n = v,mean = 0,sd = sdt)
 
              # update state and event tracking
-             dx <- S %*% (h*dt + sqrt(h)*dw)
-             x <- x + as.vector(dx)
+             dx <- (h*dt + sqrt(h)*dw)
+             x <- x + as.vector(S %*% dx)
              if(track){
-               ovec <- ovec + as.vector(Sout %*% (h*dt + sqrt(h)*dw))
+               ovec <- ovec + as.vector(Sout %*% dx)
              }
 
              x[x<0] <- 0 # "absorption" at 0

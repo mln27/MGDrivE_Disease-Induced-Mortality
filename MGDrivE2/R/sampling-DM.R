@@ -59,7 +59,7 @@ step_DM <- function(S,Sout,haz,maxhaz=1e6){
 
       # tracking event firings
       if(track){
-        ovec <- rep(0,o) # output vetor at t=t0
+        ovec <- double(length = o) # output vector at t=t0
       } else {
         ovec <- NULL
       }
