@@ -1130,7 +1130,9 @@ base_MQ <- function(fList,oDir,sName,nodeNames,nNodes,
 #'
 #' \code{write_dir} defaults to the read directory, placing the analysis with
 #' the repeititon data. If this is not desired, the user must build their own
-#' \code{write_dir} and supply it to the function.
+#' \code{write_dir} and supply it to the function. Additionally, the user may
+#' supply a name for the analysis using the \code{name} parameter, and all
+#' analysis are returned in a folder named \code{analysis_name}.
 #'
 #' \code{sex} provides the user options on how to handle the male and female
 #' data. There are 4 options:
@@ -1160,6 +1162,7 @@ base_MQ <- function(fList,oDir,sName,nodeNames,nNodes,
 #'
 #' @param read_dir directory with repetition directories in it
 #' @param write_dir directory to build output directory, default is \code{read_dir}
+#' @param name name for the analysis being performed, a valid string
 #' @param sex string dictating how to handle male/female data
 #' @param patch_agg boolean, should patches be aggregated, default is \code{FALSE}
 #' @param goi named list dictating "genotypes-of-interest", default is NULL
@@ -1176,36 +1179,9 @@ base_MQ <- function(fList,oDir,sName,nodeNames,nNodes,
 #' }
 #'
 #' @export
-analyze_ggplot_CSV <- function(read_dir, write_dir = read_dir, sex = "both", patch_agg = FALSE,
+analyze_ggplot_CSV <- function(read_dir, write_dir = read_dir, name = "analysis",
+                               sex = "both", patch_agg = FALSE,
                                goi = NULL, drop_zero_goi = TRUE){
-
-  ##########
-  # Hash Input
-  ##########
-  # Building the string is fine
-  # The hashcode function doesn't work.
-  #  Numerical instability dops all precision, and leaves the answer as NA
-  #  This is a problem in R, and exists with the R.oo package
-  #  My guess is that compiled languages overflow in "real-time", as doing the
-  #  calculations, which is why complete precision is never lost. I don't know
-  #  if it's possible to do that in R.
-  # SO - I like this idea, I haven't figured out how to pull it off.
-
-  # # if-else to handle null and unlist the list
-  # # c() because I want it all as one string, not with diffeent pieces
-  # hashString <- paste0(c(read_dir, write_dir, sex, patch_agg,
-  #                        if(is.null(goi)){"NULL"}else{unlist(goi)},
-  #                        drop_zero_goi), collapse = "")
-  # paramHash <- genHash(str2hash = hashString)
-
-
-  ##########
-  # Environment Setup
-  ##########
-  oldSeed <- .GlobalEnv$.Random.seed
-  set.seed(NULL)
-  on.exit(.GlobalEnv$.Random.seed <- oldSeed)
-
 
   ########################################
   # Parameter Checks
@@ -1405,13 +1381,7 @@ analyze_ggplot_CSV <- function(read_dir, write_dir = read_dir, sex = "both", pat
   ##########
   # Parameters
   ##########
-  # I would like to do this as a hash, built by converting all input to a string,
-  #  concatenating, and then hashing, so it is unique to the parameter input.
-  # R has no good way to build hashes, so using a basic random number and hope they
-  #  don't clash.
-  numLabel <- formatC(x = sample(x = 0:.Machine$integer.max, size = 1, replace = FALSE),
-                      width = 10, format = 'd', flag = '0')
-  aDir <- file.path(write_dir, paste0("analysis_", numLabel))
+  aDir <- file.path(write_dir, paste0("analysis_", name))
   dir.create(path = aDir)
 
   # open connection

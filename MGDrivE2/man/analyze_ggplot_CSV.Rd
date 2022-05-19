@@ -7,6 +7,7 @@
 analyze_ggplot_CSV(
   read_dir,
   write_dir = read_dir,
+  name = "analysis",
   sex = "both",
   patch_agg = FALSE,
   goi = NULL,
@@ -17,6 +18,8 @@ analyze_ggplot_CSV(
 \item{read_dir}{directory with repetition directories in it}
 
 \item{write_dir}{directory to build output directory, default is \code{read_dir}}
+
+\item{name}{name for the analysis being performed, a valid string}
 
 \item{sex}{string dictating how to handle male/female data}
 
@@ -80,7 +83,9 @@ genotypes against.
 
 \code{write_dir} defaults to the read directory, placing the analysis with
 the repeititon data. If this is not desired, the user must build their own
-\code{write_dir} and supply it to the function.
+\code{write_dir} and supply it to the function. Additionally, the user may
+supply a name for the analysis using the \code{name} parameter, and all
+analysis are returned in a folder named \code{analysis_name}.
 
 \code{sex} provides the user options on how to handle the male and female
 data. There are 4 options:

@@ -481,7 +481,7 @@ goiList <- list("W"=c("WW","WW","GW","UW","RW","VW","HW","SW"),
 
 # loop over parameter directories, do analysis!
 for(wDir in migParamDirs[[1]]){
-  MGDrivE2::analyze_ggplot_CSV(read_dir = wDir, sex = "agg", patch_agg = FALSE,
+  MGDrivE2::analyze_ggplot_CSV(read_dir = wDir, name = "alleles", sex = "agg", patch_agg = FALSE,
                                goi = goiList, drop_zero_goi = TRUE)
 }
 

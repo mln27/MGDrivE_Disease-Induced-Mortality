@@ -364,8 +364,8 @@ goiList <- c(list("Total"=genos),setNames(object = as.list(genos), nm = genos)
 
 # loop over parameter directories, do analysis!
 for(wDir in migParamDirs[[1]]){
-  MGDrivE2::analyze_ggplot_CSV(read_dir = wDir, sex = "both", patch_agg = FALSE,
-                               goi = goiList, drop_zero_goi = TRUE)
+  MGDrivE2::analyze_ggplot_CSV(read_dir = wDir, name = "genos", sex = "both",
+                               patch_agg = FALSE, goi = goiList, drop_zero_goi = TRUE)
 }
 
 
