@@ -502,10 +502,10 @@ migAnalysisDirs <- lapply(X = migDirs, FUN = function(x){
 
 # read 2 sets of summary data
 # columns: "Repetitions" "Sex" "Patch" "Time" "GOI" "Count"
-gPDat <- read.csv(file = file.path(migAnalysisDirs[[1]][8], "plot.csv"),
+gPDat <- read.csv(file = file.path(migAnalysisDirs[[1]][1], "plot.csv"),
                   header = TRUE, sep = ",")
 # columns: "Sex" "Patch" "Time" "GOI" "Min" "Mean" "Max" "2.5%" "50%" "97.5%"
-gMDat <- read.csv(file = file.path(migAnalysisDirs[[1]][8], "metrics.csv"),
+gMDat <- read.csv(file = file.path(migAnalysisDirs[[1]][1], "metrics.csv"),
                   header = TRUE, sep = ",", check.names = FALSE)
 
 ####################

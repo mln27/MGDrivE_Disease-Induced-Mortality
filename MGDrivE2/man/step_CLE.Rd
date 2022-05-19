@@ -4,7 +4,7 @@
 \alias{step_CLE}
 \title{Make Chemical Langevin (CLE) Sampler for a SPN model}
 \usage{
-step_CLE(S, Sout, haz, dt = 0.01, maxhaz = 1e+06)
+step_CLE(S, Sout, haz, sIDX, dt = 0.01, maxhaz = 1e+06)
 }
 \arguments{
 \item{S}{a stoichiometry \code{\link[Matrix]{Matrix-class}} object}
@@ -13,6 +13,8 @@ step_CLE(S, Sout, haz, dt = 0.01, maxhaz = 1e+06)
 be the approximate cumulative intensity of each event.}
 
 \item{haz}{a list of hazard functions}
+
+\item{sIDX}{vector of approximate state dependencies for hazards in \code{haz}}
 
 \item{dt}{time-step for Euler-Maruyama method used to solve the SDE system}
 

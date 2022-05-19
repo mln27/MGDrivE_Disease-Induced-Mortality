@@ -32,12 +32,13 @@
 #' @param Sout an optional matrix to track of event firings. In the deterministic case it will return
 #'        the rate of that event at the end of the time step
 #' @param haz a list of hazard functions
+#' @param sIDX vector of approximate state dependencies for hazards in \code{haz}
 #' @param method a character giving the type of numerical integrator used, the default is "lsoda"
 #'
 #' @return function closure for use in \code{\link{sim_trajectory_R}} or \code{\link{sim_trajectory_CSV}}
 #'
 #' @importFrom deSolve ode
-step_ODE <- function(S,Sout,haz,method="lsoda"){
+step_ODE <- function(S,Sout,haz,sIDX,method="lsoda"){
 
   # assign to local environment
   S <- S
@@ -45,6 +46,7 @@ step_ODE <- function(S,Sout,haz,method="lsoda"){
   u <- nrow(S)
   haz <- haz
   method <- method
+  sIDX <- sIDX
 
   # dx/dt vector changes based on if tracking or not
   if(!is.null(Sout)){
@@ -56,10 +58,11 @@ step_ODE <- function(S,Sout,haz,method="lsoda"){
     track <- TRUE
 
     dxdt <- function(t,state,par=NULL){
-      h <- haz(t=t,M=state)
+      idx <- which(x = state[sIDX]>0, useNames = FALSE)
+      h <- haz(t=t,M=state,idx=idx)
       list(
-        (S %*% h)[,1],
-        (Sout %*% h)[,1]
+        (S[ ,idx] %*% h)[,1],
+        (Sout[ ,idx] %*% h)[,1]
       )
     }
 
@@ -71,9 +74,10 @@ step_ODE <- function(S,Sout,haz,method="lsoda"){
     track <- FALSE
 
     dxdt <- function(t,state,par=NULL){
-      h <- haz(t=t,M=state)
+      idx <- which(x = state[sIDX]>0, useNames = FALSE)
+      h <- haz(t=t,M=state,idx=idx)
       list(
-        (S %*% h)[,1]
+        (S[ ,idx] %*% h)[,1]
       )
     }
 

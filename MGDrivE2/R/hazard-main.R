@@ -54,8 +54,10 @@
 #' @param tol if \code{exact=FALSE}, the value of hazard below which it is clipped to 0
 #' @param verbose display a progress bar when making hazards?
 #'
-#' @return list of length 2: \code{hazards} is a list of named closures for every
-#' state transition in the model, \code{flag} is a boolean indicating exact or approximate
+#' @return list of length 3: \code{hazards} is a list of named closures for every
+#' state transition in the model, \code{flag} is a boolean indicating exact or approximate,
+#' \code{approxS} is a vector of state dependencies used in the first-order
+#' sparsity-aware samplers
 #'
 #' @importFrom utils txtProgressBar setTxtProgressBar
 #'
@@ -239,6 +241,28 @@ spn_hazards <- function(spn_P,spn_T,cube,params,type="life",
     cat(" --- done generating hazard functions for SPN --- \n")
   }
 
+  # Sparsity Indices
+  #  Each transition depends on the value of a specific state in the simulation
+  #  None of our hazards create something from nothing - so empty states mean 0 hazards
+  #  If we keep track of those state dependencies, and then check them for value,
+  #  we could skip any state that leads to a 0 hazard without needing to calculate
+  #  the hazard. This basically skips any hazards that depend on states with no counts
+  #  at a given time-step.
+  #  This will fail if we have hazards that create value from nothing
+  #   (currently, none of these exist in the sim)
+  #  Some hazards depend on multiple input states - namely, the mating functions,
+  #   which rely on female and male states:
+  #    "pupae_2f" = make_pupae_2female_haz
+  #    "female_unmated_mate" = make_unmated_2female_haz
+  #   However, if either state is 0, then
+  #   the hazard is 0, so by checking only 1 of the 2 states, we are either right
+  #   (value of state is 0, and we skip evaluation of the hazard), or the checked
+  #   state has value but the unchecked state does not, in which case we needlessly
+  #   evaluate a hazard that returns zero. Thus, no statistical issues, but some
+  #   loss of performance.
+  #  This pulls out the first value of every hazard's state dependence
+  approxS <- vapply(X = 1:n, FUN = function(x){spn_T$T[[x]]$s[1]}, FUN.VALUE = integer(length = 1))
 
-  return(list("hazards"=h,"flag"=exact))
+
+  return(list("hazards"=h,"flag"=exact,"approxS"=approxS))
 }

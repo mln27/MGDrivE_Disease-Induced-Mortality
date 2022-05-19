@@ -26,9 +26,9 @@ cubeSEMcisXreduct1(
 
 \item{cF}{Rate of "V" allele formation from SSA during SEM process in females}
 
-\item{mmrF}{Rate of MMR in females, driving allelic conversion of "V" into "W"}
+\item{mmrF}{Rate of MMR in females, driving allelic conversion of "V" into "X"}
 
-\item{mmrM}{Rate of MMR in males, driving allelic conversion of "V" into "W"}
+\item{mmrM}{Rate of MMR in males, driving allelic conversion of "V" into "X"}
 
 \item{pDep}{Rate of cleavage during maternal deposition}
 

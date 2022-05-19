@@ -4,7 +4,7 @@
 \alias{step_ODE}
 \title{Make Mean-field Approximation (ODE) Numerical Integrator for a SPN Model}
 \usage{
-step_ODE(S, Sout, haz, method = "lsoda")
+step_ODE(S, Sout, haz, sIDX, method = "lsoda")
 }
 \arguments{
 \item{S}{a stoichiometry \code{\link[Matrix]{Matrix-class}} object}
@@ -13,6 +13,8 @@ step_ODE(S, Sout, haz, method = "lsoda")
 the rate of that event at the end of the time step}
 
 \item{haz}{a list of hazard functions}
+
+\item{sIDX}{vector of approximate state dependencies for hazards in \code{haz}}
 
 \item{method}{a character giving the type of numerical integrator used, the default is "lsoda"}
 }

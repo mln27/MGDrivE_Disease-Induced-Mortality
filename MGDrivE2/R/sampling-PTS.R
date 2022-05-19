@@ -29,13 +29,14 @@
 #' @param S a stoichiometry \code{\link[Matrix]{Matrix-class}} object
 #' @param Sout an optional matrix to track of event firings
 #' @param haz a list of hazard functions
+#' @param sIDX vector of approximate state dependencies for hazards in \code{haz}
 #' @param dt time-step for tau-leap method
 #' @param maxhaz maximum allowable hazard
 #'
 #' @return function closure for use in \code{\link{sim_trajectory_R}} or \code{\link{sim_trajectory_CSV}}
 #'
 #' @importFrom stats rpois
-step_PTS <- function(S,Sout,haz,dt=0.01,maxhaz=1e6){
+step_PTS <- function(S,Sout,haz,sIDX,dt=0.01,maxhaz=1e6){
 
   v = ncol(S)
 
@@ -68,50 +69,27 @@ step_PTS <- function(S,Sout,haz,dt=0.01,maxhaz=1e6){
       # sim loop
       repeat {
 
-        browser()
+        # get hazards to evaluate
+        idx <- which(x = x[sIDX]>0, useNames = FALSE)
 
-        # eval hazards
-        h <- haz(x, tNow)
+        # eval meaningful hazards
+        h <- haz(M=x,t=tNow,idx=idx)
         if(any(h > maxhaz)){
           stop("hazard too large, terminating simulation.\n\ttry reducing dt")
         }
 
         # sample event firings
-        r <- rpois(n = v,lambda = h*dt)
+        r <- rpois(n = length(idx),lambda = h*dt)
 
         # update state and event tracking
-        x <- x + as.vector(S %*% r)
+        x <- x + as.vector(S[ ,idx] %*% r)
         if(track){
-          ovec <- ovec + as.vector(Sout %*% r)
+          ovec <- ovec + as.vector(Sout[ ,idx] %*% r)
         }
 
+        # x[which(x<0)] <- 0 # TEST THIS?
         x[x<0] <- 0 # absorption at zero
         tNow <- tNow+dt # update time
-
-
-
-        # # jared testing
-        # # this does help, but compared to haz(), not worth anything
-        # # sample event firings
-        # idx <- which(h > 0)
-        # r <- rpois(n = length(idx), lambda = h[idx]*dt)
-        #
-        # # update state and event tracking
-        # x <- x + as.vector(S[ ,idx] %*% r)
-        # if(track){
-        #   ovec <- ovec + as.vector(Sout[ ,idx] %*% r)
-        # }
-        #
-        # # idx <- which(x<0)
-        # # if(length(idx)>0){
-        # #   x[idx] <- 0 # absorption at zero
-        # # }
-        # x[which(x<0)] <- 0 # absorption at zero
-        # tNow <- tNow+dt # update time
-
-
-
-
 
         # return condition
         if(tNow > termt){

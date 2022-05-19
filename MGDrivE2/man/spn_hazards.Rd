@@ -36,8 +36,10 @@ spn_hazards(
 \item{verbose}{display a progress bar when making hazards?}
 }
 \value{
-list of length 2: \code{hazards} is a list of named closures for every
-state transition in the model, \code{flag} is a boolean indicating exact or approximate
+list of length 3: \code{hazards} is a list of named closures for every
+state transition in the model, \code{flag} is a boolean indicating exact or approximate,
+\code{approxS} is a vector of state dependencies used in the first-order
+sparsity-aware samplers
 }
 \description{
 Using the structural (topological) SPN model as well as parameters in the

@@ -163,19 +163,19 @@ base_stepFunc <- function(sampler,S,hazards,Sout = NULL,dt_stoch,method,...){
   ##########
   # setup step function!
   #########
-  hazFunc <- function(M,t){
-    vapply(X = hazards$hazards,FUN = function(h){h(t=t,M=M)}, FUN.VALUE = numeric(1), USE.NAMES = FALSE)
+  hazFunc <- function(M,t,idx){
+    vapply(X = hazards$hazards[idx],FUN = function(h){h(t=t,M=M)}, FUN.VALUE = numeric(1), USE.NAMES = FALSE)
   }
 
   # generate stepFun
   if(sampler == "tau"){
-    stepFun <- step_PTS(S=S, Sout = Sout, haz=hazFunc, dt = dt_stoch, ...)
+    stepFun <- step_PTS(S=S, Sout = Sout, haz=hazFunc, sIDX=hazards$approxS, dt = dt_stoch, ...)
   } else if(sampler == "cle"){
-    stepFun <- step_CLE(S=S, Sout = Sout, haz=hazFunc, dt = dt_stoch, ...)
+    stepFun <- step_CLE(S=S, Sout = Sout, haz=hazFunc, sIDX=hazards$approxS, dt = dt_stoch, ...)
   } else if(sampler == "dm"){
-    stepFun <- step_DM(S=S, Sout = Sout, haz=hazFunc, ...)
+    stepFun <- step_DM(S=S, Sout = Sout, haz=hazFunc, sIDX=hazards$approxS, ...)
   } else if(sampler == "ode"){
-    stepFun <- step_ODE(S=S, Sout = Sout, haz=hazFunc, method = method, ...)
+    stepFun <- step_ODE(S=S, Sout = Sout, haz=hazFunc, sIDX=hazards$approxS, method = method, ...)
   } else {
     stop("option 'sampler' must be one of 'tau', 'cle', 'dm', 'ode'")
   }

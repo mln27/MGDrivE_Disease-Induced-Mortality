@@ -32,13 +32,14 @@
 #' @param Sout an optional matrix to track of event firings. In the continuous stochastic model this will
 #'        be the approximate cumulative intensity of each event.
 #' @param haz a list of hazard functions
+#' @param sIDX vector of approximate state dependencies for hazards in \code{haz}
 #' @param dt time-step for Euler-Maruyama method used to solve the SDE system
 #' @param maxhaz maximum allowable hazard
 #'
 #' @return function closure for use in \code{\link{sim_trajectory_R}} or \code{\link{sim_trajectory_CSV}}
 #'
 #' @importFrom stats rnorm
-step_CLE <- function(S,Sout,haz,dt=0.01,maxhaz=1e6){
+step_CLE <- function(S,Sout,haz,sIDX,dt=0.01,maxhaz=1e6){
 
   v = ncol(S)
   sdt = sqrt(dt)
@@ -70,36 +71,29 @@ step_CLE <- function(S,Sout,haz,dt=0.01,maxhaz=1e6){
              ovec <- NULL
            }
 
-           # if we are tracking things, this is dimension of tracking vector
-           track <- FALSE
-           if(!is.null(Sout)){
-             if(ncol(Sout) != v){
-               stop(
-                 "if providing output tracking matrix 'Sout' it must have same number of columns as stoichiometry matrix S"
-               )
-             }
-             o <- nrow(Sout)
-             track <- TRUE
-           }
-
            # simulation loop
            repeat {
 
-             h <- haz(x, tNow)
+             # get hazards to evaluate
+             idx <- which(x = x[sIDX]>0, useNames = FALSE)
+
+             # eval meaningful hazards
+             h <- haz(M=x,t=tNow,idx=idx)
              if(any(h > maxhaz)){
                stop("hazard too large, terminating simulation.\n\ttry reducing dt")
              }
 
              # sample weiner process
-             dw <- rnorm(n = v,mean = 0,sd = sdt)
+             dw <- rnorm(n = length(idx),mean = 0,sd = sdt)
 
              # update state and event tracking
              dx <- (h*dt + sqrt(h)*dw)
-             x <- x + as.vector(S %*% dx)
+             x <- x + as.vector(S[ ,idx] %*% dx)
              if(track){
-               ovec <- ovec + as.vector(Sout %*% dx)
+               ovec <- ovec + as.vector(Sout[ ,idx] %*% dx)
              }
 
+             # x[which(x<0)] <- 0 # TEST THIS?
              x[x<0] <- 0 # "absorption" at 0
              tNow <- tNow+dt
 

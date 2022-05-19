@@ -41,9 +41,9 @@ cubeSEMtransX_GDReduct1(
 
 \item{xM}{Rate of cleavage during GD process on SEM allele in males}
 
-\item{mmrF}{Rate of MMR in females, driving allelic conversion of "V" into "W"}
+\item{mmrF}{Rate of MMR in females, driving allelic conversion of "V" into "X"}
 
-\item{mmrM}{Rate of MMR in males, driving allelic conversion of "V" into "W"}
+\item{mmrM}{Rate of MMR in males, driving allelic conversion of "V" into "X"}
 
 \item{pDep}{Rate of cleavage during maternal deposition into W allele from GD}
 

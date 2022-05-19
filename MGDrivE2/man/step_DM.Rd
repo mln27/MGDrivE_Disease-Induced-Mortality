@@ -4,7 +4,7 @@
 \alias{step_DM}
 \title{Make Gillespie's Direct Method (DM) Sampler for a SPN model}
 \usage{
-step_DM(S, Sout, haz, maxhaz = 1e+06)
+step_DM(S, Sout, haz, sIDX, maxhaz = 1e+06)
 }
 \arguments{
 \item{S}{a stoichiometry \code{\link[Matrix]{Matrix-class}} object}
@@ -12,6 +12,8 @@ step_DM(S, Sout, haz, maxhaz = 1e+06)
 \item{Sout}{an optional matrix to track of event firings}
 
 \item{haz}{a list of hazard functions}
+
+\item{sIDX}{vector of approximate state dependencies for hazards in \code{haz}}
 
 \item{maxhaz}{maximum allowable hazard}
 }

@@ -28,12 +28,13 @@
 #' @param S a stoichiometry \code{\link[Matrix]{Matrix-class}} object
 #' @param Sout an optional matrix to track of event firings
 #' @param haz a list of hazard functions
+#' @param sIDX vector of approximate state dependencies for hazards in \code{haz}
 #' @param maxhaz maximum allowable hazard
 #'
 #' @return function closure for use in \code{\link{sim_trajectory_R}} or \code{\link{sim_trajectory_CSV}}
 #'
 #' @importFrom stats rexp
-step_DM <- function(S,Sout,haz,maxhaz=1e6){
+step_DM <- function(S,Sout,haz,sIDX,maxhaz=1e6){
 
   v = ncol(S)
 
@@ -65,13 +66,18 @@ step_DM <- function(S,Sout,haz,maxhaz=1e6){
       }
 
       repeat {
-        # evaluate hazards
-        h <- haz(x,tNow)
+
+        # get hazards to evaluate
+        idx <- which(x = x[sIDX]>0, useNames = FALSE)
+
+        # evaluate meaningful hazards
+        h <- haz(M=x,t=tNow,idx=idx)
         h0 <- sum(h)
+
         if(h0 < 1e-10){
           return(x)
         } else if(h0 > maxhaz){
-          stop("hazard too large, terminating simulation.")
+          stop("hazard too large, terminating simulation.\n\ttry reducing dt")
         } else {
           tNow <- tNow + rexp(n = 1,rate = h0)
         }
@@ -81,7 +87,7 @@ step_DM <- function(S,Sout,haz,maxhaz=1e6){
           return(list("x"=x,"o"=ovec))
         }
 
-        j <- sample(x = v,size = 1,prob=h)
+        j <- sample(x = idx,size = 1,prob=h)
         x <- x + S[,j]
         if(track){
           ovec <- ovec + Sout[,j]

@@ -4,7 +4,7 @@
 \alias{step_PTS}
 \title{Make Poisson Time-Step (PTS) Sampler for a SPN Model}
 \usage{
-step_PTS(S, Sout, haz, dt = 0.01, maxhaz = 1e+06)
+step_PTS(S, Sout, haz, sIDX, dt = 0.01, maxhaz = 1e+06)
 }
 \arguments{
 \item{S}{a stoichiometry \code{\link[Matrix]{Matrix-class}} object}
@@ -12,6 +12,8 @@ step_PTS(S, Sout, haz, dt = 0.01, maxhaz = 1e+06)
 \item{Sout}{an optional matrix to track of event firings}
 
 \item{haz}{a list of hazard functions}
+
+\item{sIDX}{vector of approximate state dependencies for hazards in \code{haz}}
 
 \item{dt}{time-step for tau-leap method}
 
