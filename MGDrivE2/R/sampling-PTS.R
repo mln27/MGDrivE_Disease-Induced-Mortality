@@ -68,6 +68,8 @@ step_PTS <- function(S,Sout,haz,dt=0.01,maxhaz=1e6){
       # sim loop
       repeat {
 
+        browser()
+
         # eval hazards
         h <- haz(x, tNow)
         if(any(h > maxhaz)){
