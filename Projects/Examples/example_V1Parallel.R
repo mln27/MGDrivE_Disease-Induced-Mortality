@@ -19,7 +19,9 @@
 # Checked releases, added basic plotting at the bottom for initial testing.
 # The non-reduced cube takes several minutes to run.
 #
-#
+# 20220526
+# I've made a bunch of changes, and apparently didn't take notes.
+# Latest addition is allele counts in the analysis.
 #
 #
 ###############################################################################
@@ -329,10 +331,16 @@ print(paste0('Total: ', capture.output(difftime(time1 = Sys.time(), time2 = star
 ########################################
 ### Analysis
 ########################################
+####################
+# Data
+####################
 # grab the parameter directories
 migDirs <- list.dirs(path = baseOut, full.names = TRUE, recursive = FALSE)
 migParamDirs <- lapply(X = migDirs, FUN = list.dirs, full.names = TRUE, recursive = FALSE)
 
+####################
+# Genetic Stuff
+####################
 # taken from the cube, so I didn't have to rerun it
 genos <- c(
 "WWWW","GWWW","UWWW","RWWW","VWWW","SWWW","GGWW","GUWW","GRWW","GVWW",
@@ -362,11 +370,100 @@ genos <- c(
 goiList <- c(list("Total"=genos),setNames(object = as.list(genos), nm = genos)
              )
 
+# build alleles of interest
+#  These functions pull out all combinations of alleles.
+#  we'll use them to create the goiLists for other analysis
+#  Could probably put these in a loop and generate the list that way. Oh well.
+one_W <- c(grep(pattern = "W...|.W..", x = genos, value = TRUE),
+           grep(pattern = "WW..", x = genos, value = TRUE))
+
+one_G <- c(grep(pattern = "G...|.G..", x = genos, value = TRUE),
+           grep(pattern = "GG..", x = genos, value = TRUE))
+
+one_U <- c(grep(pattern = "U...|.U..", x = genos, value = TRUE),
+           grep(pattern = "UU..", x = genos, value = TRUE))
+
+one_R <- c(grep(pattern = "R...|.R..", x = genos, value = TRUE),
+           grep(pattern = "RR..", x = genos, value = TRUE))
+
+one_V <- c(grep(pattern = "V...|.V..", x = genos, value = TRUE),
+           grep(pattern = "VV..", x = genos, value = TRUE))
+
+one_S <- c(grep(pattern = "S...|.S..", x = genos, value = TRUE),
+           grep(pattern = "SS..", x = genos, value = TRUE))
+
+
+two_W <- c(grep(pattern = "..W.|...W", x = genos, value = TRUE),
+           grep(pattern = "..WW", x = genos, value = TRUE))
+
+two_H <- c(grep(pattern = "..H.|...H", x = genos, value = TRUE),
+           grep(pattern = "..HH", x = genos, value = TRUE))
+
+two_R <- c(grep(pattern = "..R.|...R", x = genos, value = TRUE),
+           grep(pattern = "..RR", x = genos, value = TRUE))
+
+two_E <- c(grep(pattern = "..E.|...E", x = genos, value = TRUE),
+           grep(pattern = "..EE", x = genos, value = TRUE))
+
+
+goiList_1 <- list("W" = one_W,
+                  "G" = one_G,
+                  "U" = one_U,
+                  "R" = one_R,
+                  "V" = one_V,
+                  "S" = one_S,
+                  "Total" = c(one_W, one_G, one_U, one_R, one_V, one_S))
+
+goiList_2 <- list("W" = two_W,
+                  "H" = two_H,
+                  "R" = two_R,
+                  "E" = two_E,
+                  "Total" = c(two_W, two_H, two_R, two_E))
+
+goiList_both <- list("one_W" = one_W,
+                     "one_G" = one_G,
+                     "one_U" = one_U,
+                     "one_R" = one_R,
+                     "one_V" = one_V,
+                     "one_S" = one_S,
+                     "two_W" = two_W,
+                     "two_H" = two_H,
+                     "two_R" = two_R,
+                     "two_E" = two_E,
+                     "Total" = c(two_W, two_H, two_R, two_E))
+# the "Total" here is kinda a cheat
+#  since we always have a locus 1 paired with a locus 2, the total counts for both
+#  have to be equal. I used the total from two cause it was less typing.
+
+####################
+# Analysis
+####################
+
+
 # loop over parameter directories, do analysis!
+#  coudl also loop this better - I'm lazy.
 for(wDir in migParamDirs[[1]]){
+  # genotype analysis
   MGDrivE2::analyze_ggplot_CSV(read_dir = wDir, name = "genos", sex = "both",
                                patch_agg = FALSE, goi = goiList, drop_zero_goi = TRUE)
+
+  # locus 1
+  MGDrivE2::analyze_ggplot_CSV(read_dir = wDir, name = "allele_1", sex = "both",
+                               patch_agg = FALSE, goi = goiList_1, drop_zero_goi = TRUE)
+
+  # locus 2
+  MGDrivE2::analyze_ggplot_CSV(read_dir = wDir, name = "allele_2", sex = "both",
+                               patch_agg = FALSE, goi = goiList_2, drop_zero_goi = TRUE)
+
+  # both loci
+  MGDrivE2::analyze_ggplot_CSV(read_dir = wDir, name = "allele_both", sex = "both",
+                               patch_agg = FALSE, goi = goiList_both, drop_zero_goi = TRUE)
 }
+
+
+
+
+
 
 
 ########################################
@@ -385,10 +482,10 @@ migAnalysisDirs <- lapply(X = migDirs, FUN = function(x){
 
 # read 2 sets of summary data
 # columns: "Repetitions" "Sex" "Patch" "Time" "GOI" "Count"
-gPDat <- read.csv(file = file.path(migAnalysisDirs[[1]][9], "plot.csv"),
+gPDat <- read.csv(file = file.path(migAnalysisDirs[[1]][3], "plot.csv"),
                   header = TRUE, sep = ",")
 # columns: "Sex" "Patch" "Time" "GOI" "Min" "Mean" "Max" "2.5%" "50%" "97.5%"
-gMDat <- read.csv(file = file.path(migAnalysisDirs[[1]][9], "metrics.csv"),
+gMDat <- read.csv(file = file.path(migAnalysisDirs[[1]][3], "metrics.csv"),
                   header = TRUE, sep = ",", check.names = FALSE)
 
 ####################
