@@ -322,7 +322,7 @@ for(mR in migRates){
         # if more than 1 node, we assume only node 1 gets sprayed
         #  this will fail if the nodeID string is duplicated in the genotypes somehow
         if(numPatch>1 ) femHold <- grep(pattern = relNode, x = femHold, fixed = TRUE, value = TRUE)
-        # grap only the states with impacted genotypes
+        # grab only the states with impacted genotypes
         femVal <- grep(pattern = paste0(swapMat[ ,"off"], collapse = "|"), x = femHold, value = TRUE)
         # swap appropriate genotypes
         femVar <- femVal
@@ -377,7 +377,7 @@ for(mR in migRates){
 
     } else {
       # *nix systems
-      # Sys.info() does distuinguish Linux vs Mac, but we don't care for clusters
+      # Sys.info() does distinguish Linux vs Mac, but we don't care for clusters
       # no copying, no memory issues!
       cl <- parallel::makeForkCluster(nnodes = numCores)
 

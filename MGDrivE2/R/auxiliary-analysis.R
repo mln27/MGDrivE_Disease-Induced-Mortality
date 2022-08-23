@@ -1081,7 +1081,7 @@ base_MQ <- function(fList,oDir,sName,nodeNames,nNodes,
 ################################################################################
 # Plotting and Metrics Summary Function
 ################################################################################
-# This function differs from teh 2 above by being more generic - designed to work
+# This function differs from the 2 above by being more generic - designed to work
 # with V2 and V1 - and by saving data in a ggplot-friendly format.
 
 #' Plotting and Basic Metrics for ggplot2

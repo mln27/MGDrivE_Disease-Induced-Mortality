@@ -34,6 +34,8 @@ if(!all(c('MGDrivE','MGDrivE2','ggplot2') %in% installed.packages()[ ,'Package']
   stop("Packages 'MGDrivE', 'MGDrivE2', and 'ggplot2' are required.")
 }
 
+library(ggplot2)
+
 
 ###############################################################################
 ## Inputs
@@ -87,7 +89,7 @@ theta <- list(
 
 
 ###############################################################################
-## Inhritance Patterns
+## Inheritance Patterns
 ###############################################################################
 ####################
 ## Cubes
@@ -285,7 +287,7 @@ curPlot <- ggplot(data = rbind(fNoDIMSEI, fDIMSEI, hNoDIM, hDIM)) +
   geom_line(aes(x = time, y = value, color = inf, group = interaction(rep, inf)), lwd = 0.15) +
   facet_grid(genotype ~ dim, scales = "free_y", labeller = labeller(genotype = mNames)) +
   scale_x_continuous(limits = c(0, tmax), expand = c(0,0)) +
-  scale_y_continuous(expand = c(0,0,0.14,0.14)) +
+  scale_y_continuous(expand = c(0,0,0.14,0)) + # NEED TO FIX THIS LINE
   labs(title = waiver(), y = "Count", x = "Time (Days)", color = "Infection \n  Status") +
   geom_text(x = 0.05*tmax, y = yDim, label = labDF$label, data = labDF, fontface = "bold", size = 6) +
   theme_bw() +
