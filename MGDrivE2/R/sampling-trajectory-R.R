@@ -215,7 +215,7 @@ base_time <- function(t0 = 0,tt,dt){
 
 # place for checks on the initial markings
 # doesn't return anything, just errors if there are problems
-# x0 = initial petri net markings
+# x0 = initial petri Net markings
 #
 base_x0 <- function(x0){
   # check names are valid

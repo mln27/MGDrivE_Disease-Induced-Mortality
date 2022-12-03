@@ -9,13 +9,16 @@
 
 #' Sample Batch Migration Events
 #'
-#' Sample batch migration events for simulation given rates of occurance and probability of destination for each patch.
-#' Batch migration can be simulated for the aquatic life stages (eggs, larvae, pupae), adult females, and/or adult males.
-#' To simulate batch migration, each life stage needs all 3 of its arguments specified. If any arguments are left
-#' unspecified (\code{NULL}), batch migration for that life stage will not be sampled.
-#' The output of this function should be passed to \code{\link[MGDrivE2]{sim_trajectory_R}} or \code{\link[MGDrivE2]{sim_trajectory_CSV}}
-#' as the argument \code{batch}.
-#' Calls the internal function \code{\link[MGDrivE2]{batch_migration_stage}}.
+#' Sample batch migration events for simulation given rates of occurrence and
+#' probability of destination for each patch. Batch migration can be simulated
+#' for the aquatic life stages (eggs, larvae, pupae), adult females, and/or adult males.
+#' To simulate batch migration, each life stage needs all 3 of its arguments specified.
+#' If any arguments are left unspecified (\code{NULL}), batch migration for that
+#' life stage will not be sampled. The output of this function should be passed to
+#' \code{\link[MGDrivE2]{sim_trajectory_R}}, \code{\link[MGDrivE2]{sim_trajectory_CSV}},
+#' \code{\link[MGDrivE2]{sim_trajectory_R_decoupled}}, or \code{\link[MGDrivE2]{sim_trajectory_CSV_decoupled}}
+#' as the argument \code{batch}. This function calls \code{\link[MGDrivE2]{batch_migration_stage}}
+#' internally.
 #'
 #' @param SPN_P places of the SPN
 #' @param tmax maximum time of the simulation
@@ -28,11 +31,18 @@
 #' @param Mrates rate at which adult male batch migration occurs for each node (nodes without mosquitoes should be set to \code{NaN} or \code{NA})
 #' @param Mmove movement matrix for destinations of adult male batch migration events (diagonal will be set to zero and off-diagonal elements normalized)
 #' @param Mprob probability for each individual to be chosen for adult male batch migration events (must be same length as \code{Mrates})
+#' @param stage either \code{NULL} or "E", "L", or "P". If not \code{NULL} and migration for aquatic stages is specified by \code{ELPrates}, only the aquatic stage specified here will move
 #'
 #' @importFrom stats runif
 #'
 #' @export
-batch_migration <- function(SPN_P, tmax, ELPrates = NULL, ELPmove = NULL, ELPprob = NULL, Frates = NULL, Fmove = NULL, Fprob = NULL, Mrates = NULL, Mmove = NULL, Mprob = NULL){
+batch_migration <- function(
+  SPN_P, tmax,
+  ELPrates = NULL, ELPmove = NULL, ELPprob = NULL,
+  Frates = NULL, Fmove = NULL, Fprob = NULL,
+  Mrates = NULL, Mmove = NULL, Mprob = NULL,
+  stage = NULL
+){
 
   if(length(SPN_P$ix)<2){
     stop("cannot set up batch migration for a 1-node system")
@@ -49,11 +59,17 @@ batch_migration <- function(SPN_P, tmax, ELPrates = NULL, ELPmove = NULL, ELPpro
     }
     diag(ELPmove) <- 0
 
-    ELP <- batch_migration_stage(SPN_P = SPN_P, rates = ELPrates, move = ELPmove, prob = ELPprob, stage = "ELP", tmax = tmax)
+    if(!is.null(stage)){
+      stopifnot(stage %in% c("E","L","P"))
+    }
+
+    aqua_stage <- ifelse(test = is.null(stage),yes = "ELP",no = stage)
+    ELP_events <- batch_migration_stage(SPN_P = SPN_P, rates = ELPrates, move = ELPmove,
+                                        prob = ELPprob, stage = aqua_stage, tmax = tmax)
 
   } else {
 
-    ELP <- NULL
+    ELP_events <- NULL
 
   }
 
@@ -68,11 +84,12 @@ batch_migration <- function(SPN_P, tmax, ELPrates = NULL, ELPmove = NULL, ELPpro
     }
     diag(Fmove) <- 0
 
-    F <- batch_migration_stage(SPN_P = SPN_P, rates = Frates, move = Fmove, prob = Fprob, stage = "F", tmax = tmax)
+    F_events <- batch_migration_stage(SPN_P = SPN_P, rates = Frates, move = Fmove,
+                                      prob = Fprob, stage = "F", tmax = tmax)
 
   } else {
 
-    F <- NULL
+    F_events <- NULL
 
   }
 
@@ -87,15 +104,16 @@ batch_migration <- function(SPN_P, tmax, ELPrates = NULL, ELPmove = NULL, ELPpro
     }
     diag(Mmove) <- 0
 
-    M <- batch_migration_stage(SPN_P = SPN_P, rates = Mrates, move = Mmove, prob = Mprob, stage = "M", tmax = tmax)
+    M_events <- batch_migration_stage(SPN_P = SPN_P, rates = Mrates, move = Mmove,
+                                      prob = Mprob, stage = "M", tmax = tmax)
 
   } else {
 
-    M <- NULL
+    M_events <- NULL
 
   }
 
-  batch_list <- c(ELP,F,M)
+  batch_list <- c(ELP_events, F_events, M_events)
 
   # sort by time of event
   batch_list <- batch_list[order(sapply(batch_list,function(x){x$time}))]
@@ -105,16 +123,16 @@ batch_migration <- function(SPN_P, tmax, ELPrates = NULL, ELPmove = NULL, ELPpro
 
 #' Internal function to sample and set up data structure for batch migration
 #'
-#' @param SPN_P a set of Petri net places
+#' @param SPN_P a set of Petri Net places
 #' @param rates a vector of rates for each node
 #' @param move a movement matrix (where do the batches go?)
 #' @param prob the probability vector for each individual moving in each batch
-#' @param stage the life stage (one of 'ELP', 'F', 'M')
+#' @param stage the life stage (one of 'ELP', 'E', 'L', 'P', 'F', 'M')
 #' @param tmax maximum simulation time
 batch_migration_stage <- function(SPN_P, rates, move, prob, stage, tmax){
 
-  if(!(stage %in% c("ELP","F","M"))){
-    stop("called from 'batch_migration_stage', argument 'stage' must be one of 'ELP', 'F', 'M'")
+  if(!(stage %in% c("ELP","F","M", "E", "L", "P"))){
+    stop("called from 'batch_migration_stage', argument 'stage' must be one of 'ELP', 'E', 'L', 'P', 'F', 'M'")
   }
 
   rates[which(!is.finite(rates))] <- 0
@@ -122,7 +140,7 @@ batch_migration_stage <- function(SPN_P, rates, move, prob, stage, tmax){
   events_times <- lapply(X = events_num, FUN = function(nn){
     if(nn > 0){
       # sample from times points that are guaranteed to be hit by the sampler
-      return(unique(round(stats::runif(n = nn, min = 1, max = tmax-1))))
+      return(unique(round(runif(n = nn, min = 1, max = tmax-1))))
     } else {
       return(NULL)
     }
@@ -147,6 +165,15 @@ batch_migration_stage <- function(SPN_P, rates, move, prob, stage, tmax){
         if(stage=="ELP"){
           out$from <- c(SPN_P$ix[[id]]$egg,SPN_P$ix[[id]]$larvae,SPN_P$ix[[id]]$pupae)
         }
+        if(stage == "E"){
+          out$from <- c(SPN_P$ix[[id]]$egg)
+        }
+        if(stage == "L"){
+          out$from <- c(SPN_P$ix[[id]]$larvae)
+        }
+        if(stage == "P"){
+          out$from <- c(SPN_P$ix[[id]]$pupae)
+        }
         if(stage == "F"){
           out$from <- c(SPN_P$ix[[id]]$females_unmated,as.vector(SPN_P$ix[[id]]$females))
         }
@@ -160,6 +187,15 @@ batch_migration_stage <- function(SPN_P, rates, move, prob, stage, tmax){
         for(i in 1:length(event)){
           if(stage=="ELP"){
             out$to[,i] <- c(SPN_P$ix[[event[i]]]$egg,SPN_P$ix[[event[i]]]$larvae,SPN_P$ix[[event[i]]]$pupae)
+          }
+          if(stage == "E"){
+            out$to[,i] <- c(SPN_P$ix[[event[i]]]$egg)
+          }
+          if(stage == "L"){
+            out$to[,i] <- c(SPN_P$ix[[event[i]]]$larvae)
+          }
+          if(stage == "P"){
+            out$to[,i] <- c(SPN_P$ix[[event[i]]]$pupae)
           }
           if(stage == "F"){
             out$to[,i] <- c(SPN_P$ix[[event[i]]]$females_unmated,as.vector(SPN_P$ix[[event[i]]]$females))
