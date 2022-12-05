@@ -34,13 +34,14 @@
 #' \code{\link{spn_T_epiSIS_node}}, \code{\link{spn_T_epiSIS_network}},
 #' \code{\link{spn_T_epiSEIR_node}}, \code{\link{spn_T_epiSEIR_network}}.
 #'
-#' The \code{params} objected is generated from either \code{\link{equilibrium_lifeycle}}
-#' or \code{\link{equilibrium_SEI_SIS}}; it is the "params" object in the return
+#' The \code{params} objected is generated from \code{\link{equilibrium_lifeycle}},
+#' \code{\link{equilibrium_SEI_SIS}}, \code{\link{equilibrium_SEI_decoupled_mosy}},
+#' or \code{\link{equilibrium_Imperial_decoupled}}; it is the "params" object in the return
 #' list. The equilibrium function used must match the \code{type} parameter.
 #'
 #' The \code{type} parameter indicates what type of simulation is being run. It
-#' is one of: "life", "SIS", or "SEIR". This must match the \code{params} object
-#' supplied.
+#' is one of: "life", "SIS", "SEIR", "SIS-decoupled", or "Imperial". This must
+#' match the \code{params} object supplied.
 #'
 #' Use of this function is demonstrated in many vignettes, \code{browseVignettes(package = "MGDrivE2")}
 #'
@@ -48,7 +49,7 @@
 #' @param spn_T the set of transitions (T) (see details)
 #' @param cube an inheritance cube from the \code{MGDrivE} package (e.g. \code{\link[MGDrivE]{cubeMendelian}})
 #' @param params a named list of parameters (see details)
-#' @param type string indicating type of hazards, one of; "life", "SIS", or "SEIR"
+#' @param type string indicating type of hazards, one of; "life", "SIS", "SEIR", "SIS-decoupled", or "Imperial"
 #' @param log_dd if \code{TRUE}, use logistic (carrying capacity) density dependent hazards, if \code{FALSE} use Lotka-Volterra density dependent hazards for larval mortality
 #' @param exact boolean, make exact (integer input) hazards? Default is TRUE
 #' @param tol if \code{exact=FALSE}, the value of hazard below which it is clipped to 0
@@ -75,8 +76,15 @@ spn_hazards <- function(spn_P,spn_T,cube,params,type="life",
     check_params_sis(params = params)
   } else if(type == "SEIR"){
     check_params_SEIR(params = params)
+  } else if(type == "SIS-decoupled"){
+    # TODO write function to check SIS decoupled params
+    #  do these differ from the standard SIS params?
+    cat("SIS-decoupled has no parameter check implemented")
+  } else if (type == "Imperial") {
+    # TODO write function to check Imperial params
+    cat("Imperial has no parameter check implemented")
   } else {
-    stop("type of hazards improperly specified, please provide: life, SIS, SEIR")
+    stop("type of hazards improperly specified, please provide: life, SIS, SEIR, SIS-decoupled, Imperial")
   }
 
   # check type/validity of density dependence
@@ -157,9 +165,19 @@ spn_hazards <- function(spn_P,spn_T,cube,params,type="life",
                    "female_unmated_mate" = make_unmated_2female_haz)
 
   # infection (M->H or H->M): these need the indices of humans in the node
+  # default, coupled SIS/SEIR
   infNames <- c("female_inf","H_infection")
   infFuncs <- setNames(object = c(make_female_inf_epi_haz,make_human_inf_sis_haz),
-                      nm = infNames)
+                       nm = infNames)
+
+  # check if dynamics change - replace female infection func, human won't get used
+  if(type == "SIS-decoupled"){
+    # SIS decoupled
+    infFuncs["female_inf"] <- make_female_inf_epi_haz_decoupled_SIS
+  } else if(type == "Imperial"){
+    # Imperial decoupled
+    infFuncs["female_inf"] <- make_female_inf_epi_haz_decoupled_Imperial
+  }
 
   # epidemiological hazards
   eipHNames <- c("female_eip","female_inc","H_birth","H_mort","H_recovery",

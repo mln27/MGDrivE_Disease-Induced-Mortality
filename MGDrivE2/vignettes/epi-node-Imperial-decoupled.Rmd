@@ -89,8 +89,8 @@ The transitions between states is also expanded, providing transitions for femal
 
 ```{r}
 # Places and transitions
-SPN_P <- spn_P_epi_decoupled_node(params = theta, cube = cube)
-SPN_T <- spn_T_epi_decoupled_node(spn_P = SPN_P, params = theta, cube = cube)
+SPN_P <- spn_P_epiSIS_node(params = theta, cube = cube, decoupled = TRUE)
+SPN_T <- spn_T_epiSIS_node(spn_P = SPN_P, params = theta, cube = cube, decoupled = TRUE)
 
 # Stoichiometry matrix
 S <- spn_S(spn_P = SPN_P, spn_T = SPN_T)
@@ -127,7 +127,7 @@ With the equilibrium conditions calculated (see `?equilibrium_SEI_SIS()`), and t
 
 ```{r}
 # approximate hazards for continuous approximation
-approx_hazards <- spn_hazards_decoupled(spn_P = SPN_P, spn_T = SPN_T, cube = cube,
+approx_hazards <- spn_hazards(spn_P = SPN_P, spn_T = SPN_T, cube = cube,
                               params = theta, type = "Imperial",
                               log_dd = TRUE, exact = FALSE, tol = 1e-8,
                               verbose = FALSE)

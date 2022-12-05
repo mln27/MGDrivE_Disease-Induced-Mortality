@@ -23,7 +23,8 @@
 #' The \code{params} argument supplies all of the ecological parameters necessary
 #' to calculate equilibrium values. This function requires the \code{nE},
 #' \code{nL}, \code{nP}, and \code{nEIP} parameters to be specified. For more details, see
-#' \code{\link{equilibrium_SEI_SIS}}
+#' \code{\link{equilibrium_SEI_SIS}}, \code{\link{equilibrium_SEI_decoupled_mosy}},
+#' or \code{\link{equilibrium_Imperial_decoupled}}.
 #'
 #' While this function produces all structural information related to transitions,
 #' hazards are produced by a separate function, \code{\link{spn_hazards}}.
@@ -48,13 +49,15 @@
 #' @param cube an inheritance cube from the \code{MGDrivE} package (e.g. \code{\link[MGDrivE]{cubeMendelian}})
 #' @param h_move binary adjacency matrix indicating if movement of humans between nodes is possible or not
 #' @param m_move binary adjacency matrix indicating if movement of mosquitoes between nodes is possible or not
+#' @param decoupled boolean to denote if using decoupled sims, default is \code{FALSE}
 #' @param feqTol tolerance for numerical equality, default is sqrt(.Machine$double.eps)
 #'
-#' @return a list with two elements: \code{T} contains transitions packets as lists,
-#' \code{v} is the character vector of transitions (T)
+#' @return a list with two or three elements: \code{T} contains transitions packets as lists,
+#' \code{v} is the character vector of transitions (T), and (if \code{decoupled == TRUE})
+#' \code{inf_labels} is the female infection transitions
 #'
 #' @export
-spn_T_epiSIS_network <- function(node_list,spn_P,params,cube,h_move,m_move,feqTol=1.5e-08){
+spn_T_epiSIS_network <- function(node_list,spn_P,params,cube,h_move,m_move,decoupled=FALSE,feqTol=1.5e-08){
 
   # set of places
   u <- spn_P$u
@@ -75,7 +78,7 @@ spn_T_epiSIS_network <- function(node_list,spn_P,params,cube,h_move,m_move,feqTo
     if(node_list[t]=="b"){
       T_meta[[t]] <- spn_T_both_epi(u = u,nE = params$nE,nL = params$nL,nP = params$nP,
                                     nEIP = params$nEIP,cube = cube,node_id = t,
-                                    T_index = T_index, feqTol = feqTol)
+                                    T_index = T_index, feqTol = feqTol, decoupled = decoupled)
     } else if(node_list[t]=="h"){
       T_meta[[t]] <- spn_T_humans_epi(u = u, node_id = t,T_index = T_index)
     } else if(node_list[t]=="m"){
@@ -533,7 +536,7 @@ spn_T_humans_epi <- function(u,node_id,T_index){
 
 # u: set of places for the mosquito-only node
 # if this is for node 1, T_index = 1, otherwise its max(node[i-1].T_index)+1
-spn_T_both_epi <- function(u,nE,nL,nP,nEIP,cube,node_id,T_index,feqTol){
+spn_T_both_epi <- function(u,nE,nL,nP,nEIP,cube,node_id,T_index,feqTol,decoupled){
 
   # genetic states
   g <- cube$genotypesID
@@ -550,40 +553,56 @@ spn_T_both_epi <- function(u,nE,nL,nP,nEIP,cube,node_id,T_index,feqTol){
   # make female infection
   female_inf_tt <- vector("list",nG^2)
   vv <- 1
+  inf_func <- if(!decoupled) make_transition_female_inf_epi else make_transition_female_inf_epi_decoupled
 
   for(j_f in 1:nG){
     for(j_m in 1:nG){
-      female_inf_tt[[vv]] <- make_transition_female_inf_epi(T_index,u=u,f_gen=g[j_f],
-                                                            m_gen=g[j_m],node=node_id)
+      female_inf_tt[[vv]] <- inf_func(T_index,u=u,f_gen=g[j_f],m_gen=g[j_m],node=node_id)
       T_index <- T_index + 1
       vv <- vv + 1
     }
   }
 
+  # check for normal or decoupled sims
+  if(!decoupled){
+    # running normal sims, full Petri Net
 
-  # HUMAN TRANSITIONS
-  human_tt <- vector("list",nG^2)
-  vv <- 1
+    # HUMAN TRANSITIONS
+    human_tt <- vector("list",nG^2)
+    vv <- 1
 
-  # add epi transitions not in base
-  for(j_f in 1:nG){
-    for(j_m in 1:nG){
-      human_tt[[vv]] <- make_transition_human_inf_epiSIS(T_index,u=u,f_gen=g[j_f],
-                                                         m_gen=g[j_m],node=node_id)
-      T_index <- T_index + 1
-      vv <- vv + 1
+    # add epi transitions not in base
+    for(j_f in 1:nG){
+      for(j_m in 1:nG){
+        human_tt[[vv]] <- make_transition_human_inf_epiSIS(T_index,u=u,f_gen=g[j_f],
+                                                           m_gen=g[j_m],node=node_id)
+        T_index <- T_index + 1
+        vv <- vv + 1
+      }
     }
+
+    # combine with base transitions
+    human_tt <- c(human_tt,
+                  base_T_humans_epi(u = u, node_id = node_id, T_index = T_index))
+
+    # the set of transitions
+    t <- c(base_mos,
+           "female_inf" = list(female_inf_tt),
+           "human" = list(human_tt))
+
+  } else {
+    # decoupled sims, for Imperial model
+
+    # the set of transitions
+    t <- c(base_mos,
+           "female_inf" = list(female_inf_tt))
+
+    # keep track of the female infection transitions
+    # since these rely on human states, we will need them later
+    # when evaluating hazards
+    inf_labels <- unlist(sapply(female_inf_tt, function(inf) { return(inf$label) }))
   }
 
-  # combine with base transitions
-  human_tt <- c(human_tt,
-                base_T_humans_epi(u = u, node_id = node_id, T_index = T_index))
-
-
-  # the set of transitions
-  t <- c(base_mos,
-         "female_inf" = list(female_inf_tt),
-         "human" = list(human_tt))
 
   # transitions (v)
   v <- unlist(x = lapply(X = t, FUN = lapply, '[[', 'label'), use.names = FALSE)
@@ -591,12 +610,18 @@ spn_T_both_epi <- function(u,nE,nL,nP,nEIP,cube,node_id,T_index,feqTol){
   # one long vector
   t <- unlist(x = t, recursive = FALSE, use.names = FALSE)
 
+  # setup return
+  retList <- if(!decoupled){
+    list("T" = t,"v" = v)
+  } else {
+    list("T" = t,"v" = v,"inf_labels" = inf_labels)
+  }
+
 
   # set T_index in parent environment
   #  ie, update the counter
   assign(x = "T_index", value = T_index, pos = parent.frame())
 
   # return the set of transitions and the vector (v)
-  return(list("T" = t,
-              "v" = v) )
+  return(retList)
 }

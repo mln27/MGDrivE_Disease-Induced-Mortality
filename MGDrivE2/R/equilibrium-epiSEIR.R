@@ -10,9 +10,14 @@
 ###############################################################################
 #   equilibrium for SIS
 ###############################################################################
-# This is extremely similartoo the SIS equilibrium function. If there is a better
+# This is extremely similar to the SIS equilibrium function. If there is a better
 #  way of having both of these functions, with the difference in humans, that would
 #  be great.
+#
+# 20221204 JB
+#  We could actually make a base function out of most of this, and input the female
+#  func and the adult stages. Some checks would need moved out of the base function
+#  into the specific ones, but that's way less than all of this code duplication.
 
 #' Calculate Equilibrium for Mosquito SEI - Human SEIR Model
 #'

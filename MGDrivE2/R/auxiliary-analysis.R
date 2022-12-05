@@ -73,6 +73,9 @@
 #' \code{tmax}, \code{dt} define the last sampling
 #' time, and each sampling time in-between.
 #'
+#' Default usages leaves \code{human_states} as null. For use with decoupled
+#' sims (\code{\link{sim_trajectory_CSV_decoupled}}), provide the \code{human_states} to the analysis.
+#'
 #' For more details about using this function to process CSV output see:
 #' \code{vignette("data-analysis", package = "MGDrivE2")}
 #'
@@ -82,8 +85,9 @@
 #' @param spn_P Places object, see details
 #' @param tmax The final time to end simulation
 #' @param dt The time-step at which to return output (\strong{not} the time-step of the sampling algorithm)
+#' @param human_states Human state distribution for decoupled simulations. Default is NULL
 #' @param erlang Boolean, default is FALSE, to return summaries by genotype
-#' @param sum_fem if \code{TRUE}, in addition to FS, FE, FI output by node and repetition, output an
+#' @param sum_fem If \code{TRUE}, in addition to FS, FE, FI output by node and repetition, output an
 #'                additional file F which sums over infection states (S,E,I). Does nothing if the
 #'                simulation did not include epi dynamics.
 #' @param rem_file Remove original output? Default is FALSE
@@ -99,6 +103,7 @@ split_aggregate_CSV <- function(
   write_dir = read_dir,
   stage = c("E","L","P","M","U","FS","FE","FI","H"),
   spn_P, tmax, dt,
+  human_states = NULL,
   erlang = FALSE,
   sum_fem = FALSE,
   rem_file=FALSE,
@@ -170,16 +175,9 @@ split_aggregate_CSV <- function(
                                 FUN.VALUE = logical(length = 1)) )
   numMosyNodes <- length(mosyNodes)
 
-  hNodes <- which(x = vapply(X = spn_P$ix,
-                                FUN = function(x){!is.null(x$humans)},
-                                FUN.VALUE = logical(length = 1)) )
-  numHNodes <- length(hNodes)
-
   # get genotype info
   mosyGenos <- colnames(spn_P$ix[[mosyNodes[1]]]$egg)
   numMosyGenos <- length(mosyGenos)
-  hGenos <- switch((length(spn_P$ix[[hNodes[1]]]$humans) == 2)+1, c("S","E","I","R"), c("S","I"))
-  numHGenos <- length(hGenos)
 
   # get length of Erlang stages
   nELP <- c("E" = NROW(spn_P$ix[[mosyNodes[1]]]$egg),
@@ -197,12 +195,39 @@ split_aggregate_CSV <- function(
   # sampling times, and number of samples in files (ie, number of rows)
   times <- seq(from=t0,to=tt,by=dt)
   nTimes <- length(times)
-
   numStage <- length(stage)
 
   # node names for output
   mosyNodeNames <- formatC(x = mosyNodes, width = 4, format = "d", flag = "0")
-  hNodeNames <- formatC(x = hNodes, width = 4, format = "d", flag = "0")
+
+
+  # setup human stuff
+  if(!is.null(human_states)){
+    # standard, non-decoupled analysis
+    #  human nodes
+    hNodes <- which(x = vapply(X = spn_P$ix,
+                               FUN = function(x){!is.null(x$humans)},
+                               FUN.VALUE = logical(length = 1)) )
+    numHNodes <- length(hNodes)
+
+    # human genotype info
+    hGenos <- switch((length(spn_P$ix[[hNodes[1]]]$humans) == 2)+1, c("S","E","I","R"), c("S","I"))
+    numHGenos <- length(hGenos)
+
+    # node names for output
+    hNodeNames <- formatC(x = hNodes, width = 4, format = "d", flag = "0")
+
+  } else {
+    # running decoupled analysis
+    # stuff is hard coded
+    hGenos <- human_states
+    numHGenos <- length(hGenos)
+
+    # only 1 human node for now!
+    hNodeNames <- c("0001")
+    numHNodes <- length(hNodeNames)
+
+  }
 
 
   ##########
@@ -795,6 +820,9 @@ base_sum_F <- function(fileList,outList,genos,nGenos,nErlang,times,nTimes,nNodes
 #' \code{t0}, \code{tt}, \code{dt} define the first sampling time, the last sampling
 #' time, and each sampling time in-between.
 #'
+#' Default usages leaves \code{human_states} as null. For use with decoupled
+#' sims (\code{\link{sim_trajectory_CSV_decoupled}}), provide the \code{human_states} to the analysis.
+#'
 #' Output files are *.csv and contain the mean or quantile in the file name, e.g.
 #' {stage}_Mean_(patchNum).csv and {stage}_Quantile_(quantNum)_(patchNum).csv.
 #'
@@ -809,6 +837,7 @@ base_sum_F <- function(fileList,outList,genos,nGenos,nErlang,times,nTimes,nNodes
 #' @param spn_P Places object, see details
 #' @param tmax The final time to end simulation
 #' @param dt The time-step at which to return output (\strong{not} the time-step of the sampling algorithm)
+#' @param human_states Human state distribution for decoupled simulations. Default is NULL
 #' @param rem_file Remove original output? Default is FALSE
 #' @param verbose Chatty? Default is TRUE
 #'
@@ -817,7 +846,7 @@ base_sum_F <- function(fileList,outList,genos,nGenos,nErlang,times,nTimes,nNodes
 #' @export
 summarize_stats_CSV <- function(
   read_dir, write_dir=read_dir, mean=TRUE, quantiles=NULL,
-  spn_P, tmax, dt, rem_file=FALSE, verbose=TRUE
+  spn_P, tmax, dt, human_states=NULL, rem_file=FALSE, verbose=TRUE
 ){
 
   ##########
@@ -876,16 +905,9 @@ summarize_stats_CSV <- function(
                                 FUN.VALUE = logical(length = 1)) )
   numMosyNodes <- length(mosyNodes)
 
-  hNodes <- which(x = vapply(X = spn_P$ix,
-                                FUN = function(x){!is.null(x$humans)},
-                                FUN.VALUE = logical(length = 1)) )
-  numHNodes <- length(hNodes)
-
   # get genotype info
   mosyGenos <- colnames(spn_P$ix[[mosyNodes[1]]]$egg)
   numMosyGenos <- length(mosyGenos)
-  hGenos <- switch((length(spn_P$ix[[hNodes[1]]]$humans) == 2)+1, c("S","E","I","R"), c("S","I"))
-  numHGenos <- length(hGenos)
 
   # get length of Erlang stages
   nELP <- c("E" = NROW(spn_P$ix[[mosyNodes[1]]]$egg),
@@ -901,7 +923,34 @@ summarize_stats_CSV <- function(
 
   # node names for output
   mosyNodeNames <- formatC(x = mosyNodes, width = 4, format = "d", flag = "0")
-  hNodeNames <- formatC(x = hNodes, width = 4, format = "d", flag = "0")
+
+  # setup human stuff
+  if(!is.null(human_states)){
+    # standard, non-decoupled analysis
+    #  human nodes
+    hNodes <- which(x = vapply(X = spn_P$ix,
+                               FUN = function(x){!is.null(x$humans)},
+                               FUN.VALUE = logical(length = 1)) )
+    numHNodes <- length(hNodes)
+
+    # human genotype info
+    hGenos <- switch((length(spn_P$ix[[hNodes[1]]]$humans) == 2)+1, c("S","E","I","R"), c("S","I"))
+    numHGenos <- length(hGenos)
+
+    # node names for output
+    hNodeNames <- formatC(x = hNodes, width = 4, format = "d", flag = "0")
+
+  } else {
+    # running decoupled analysis
+    # stuff is hard coded
+    hGenos <- human_states
+    numHGenos <- length(hGenos)
+
+    # only 1 human node for now!
+    hNodeNames <- c("0001")
+    numHNodes <- length(hNodeNames)
+
+  }
 
 
   # derived parameters specific to this function

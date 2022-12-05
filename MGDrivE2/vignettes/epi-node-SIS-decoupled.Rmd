@@ -120,8 +120,8 @@ The transitions between states is also expanded, providing transitions for femal
 ```{r}
 # Places and transitions
 # note decoupled sampling is only supported currently for one node.
-SPN_P <- spn_P_epi_decoupled_node(params = theta, cube = cube)
-SPN_T <- spn_T_epi_decoupled_node(spn_P = SPN_P, params = theta, cube = cube)
+SPN_P <- spn_P_epiSIS_node(params = theta, cube = cube, decoupled = TRUE)
+SPN_T <- spn_T_epiSIS_node(spn_P = SPN_P, params = theta, cube = cube, decoupled = TRUE)
 
 # Stoichiometry matrix
 S <- spn_S(spn_P = SPN_P, spn_T = SPN_T)
@@ -138,19 +138,15 @@ The function `equilibrium_SEI_SIS()` calculates the equilibrium distribution of 
 #  outputs required parameters in the named list "params"
 #  outputs initial equilibrium for adv users, "init
 #  outputs properly filled initial markings, "M0"
-initialCons <- equilibrium_SEI_decoupled_mosy(params = theta, phi = 0.5, log_dd = TRUE,
-                                   spn_P = SPN_P, cube = cube)
-
-# augment with human equilibrium states
-initialCons$H <- equilibrium_SEI_decoupled_human(params = theta)
+initialCons <- equilibrium_SEI_decoupled(params = theta, spn_P = SPN_P, cube = cube)
 ```
 
 With the equilibrium conditions calculated (see `?equilibrium_SEI_SIS()`), and the list of possible transitions provided by `spn_T_epiSIS_node()`, we can now calculate the rates of those transitions between states.
 
 ```{r}
 # approximate hazards for continuous approximation
-approx_hazards <- spn_hazards_decoupled(spn_P = SPN_P, spn_T = SPN_T, cube = cube,
-                              params = initialCons$params, type = "SIS",
+approx_hazards <- spn_hazards(spn_P = SPN_P, spn_T = SPN_T, cube = cube,
+                              params = initialCons$params, type = "SIS-decoupled",
                               log_dd = TRUE, exact = FALSE, tol = 1e-8,
                               verbose = FALSE)
 ```

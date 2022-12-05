@@ -743,3 +743,51 @@ summarize_humans_epiSIS <- function(out){
 summarize_humans_epiSEIR <- function(out){
   base_summarize_humans(out = out, infState = c("S","E","I","R"))
 }
+
+#######################################
+# Humans - Imperial
+#######################################
+
+#' Summarize Humans for Imperial Model
+#'
+#' The Imperial model outputs six human states for each age compartment.
+#' This function accepts the output matrix and the desired index of an age compartment
+#' and returns the trajectory of all human states in that given age compartment (default 1)
+#'
+#'
+#' @param out the output of \code{\link[MGDrivE2]{sim_trajectory_R}}
+#' @param index the desired age compartment for which to pull trajectory
+#'
+#' @return dataframe for plotting with ggplot2
+#'
+#' @export
+summarize_humans_epiImperial <- function(out, index=1){
+  # get names of all states
+  states <- colnames(out)
+  numRep <- dim(out)[3]
+  idx <- paste0(formatC(index-1, width=2, flag="0"), "_", formatC(index, width=2, flag="0"))
+
+  # grab only the human states for the given age compartment
+  labels <- c(
+    paste0("S", idx),
+    paste0("T", idx),
+    paste0("D", idx),
+    paste0("A", idx),
+    paste0("U", idx),
+    paste0("P", idx)
+  )
+
+  h_idx <- match(labels, states)
+
+  # setup return df
+  retDF <- expand.grid("time" = out[ ,"time",1], "inf" = labels, "genotype" = "human", "rep" = 1:numRep)
+
+  # fill count data
+  retDF$value <- as.vector(out[ ,h_idx, ])
+
+  # if 1 rep, remove repetition designation
+  if(numRep == 1){retDF$rep <- NULL}
+
+  # return data frame
+  return(retDF)
+}
