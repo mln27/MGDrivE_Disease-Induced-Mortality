@@ -58,8 +58,11 @@ step_ODE <- function(S,Sout,haz,sIDX,method="lsoda"){
     track <- TRUE
 
     dxdt <- function(t,state,par=NULL){
+      # get hazards to evaluate
       idx <- which(x = state[sIDX]>0, useNames = FALSE)
+      # eval meaningful hazards
       h <- haz(t=t,M=state,idx=idx)
+      # return object
       list(
         (S[ ,idx] %*% h)[,1],
         (Sout[ ,idx] %*% h)[,1]
@@ -74,32 +77,30 @@ step_ODE <- function(S,Sout,haz,sIDX,method="lsoda"){
     track <- FALSE
 
     dxdt <- function(t,state,par=NULL){
+      # get hazards to evaluate
       idx <- which(x = state[sIDX]>0, useNames = FALSE)
+      # eval meaningful hazards
       h <- haz(t=t,M=state,idx=idx)
-      list(
-        (S[ ,idx] %*% h)[,1]
+      # return object
+      list((S[ ,idx] %*% h)[,1])
+    }
+
+  } # end tracking check
+
+  return(function(x0, t0, deltat){
+
+    # solve ODEs over the step
+    X <- ode(y = x0,times = c(t0,t0+deltat),func = dxdt,parms = NULL,method=method)
+
+    if(track){
+      return(
+        list("x" = X[2,xout], "o" = X[2,oout])
+      )
+    } else {
+      return(
+        list("x" = X[2,-1], "o" = NULL)
       )
     }
 
-  }
-
-  return(
-         function(x0, t0, deltat){
-
-           # solve ODEs over the step
-           X <- ode(y = x0,times = c(t0,t0+deltat),func = dxdt,parms = NULL,method=method)
-
-           if(track){
-             return(
-               list("x" = X[2,xout], "o" = X[2,oout])
-             )
-           } else {
-             return(
-               list("x" = X[2,-1], "o" = NULL)
-             )
-           }
-
-
-         }
-       )
+  })
 }
