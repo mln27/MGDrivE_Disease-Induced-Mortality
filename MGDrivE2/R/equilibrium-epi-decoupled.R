@@ -33,13 +33,13 @@
 #'
 #' @return a list of parameters and initial conditions
 #'
-#'export
+#' @export
 equilibrium_SEI_decoupled <- function(params, spn_P, cube){
 
   # calculate mosquito equilibrium
-  initialCons <- equilibrium_SEI_decoupled_mosy(params = ,
-                                                spn_P = ,
-                                                cube = ,
+  initialCons <- equilibrium_SEI_decoupled_mosy(params = params,
+                                                spn_P = spn_P,
+                                                cube = cube,
                                                 node_list="b", NF=NULL,
                                                 phi=0.5, NH=NULL, log_dd=TRUE,
                                                 pop_ratio_Aq=NULL, pop_ratio_F=NULL,

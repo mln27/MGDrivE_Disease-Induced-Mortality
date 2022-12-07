@@ -76,7 +76,7 @@ step_PTS_decoupled <- function(S,Sout,haz,sIDX,dt=0.01,maxhaz=1e6,human_ode="SIS
           idx <- which(x = x[sIDX]>0, useNames = FALSE)
 
           # eval meaningful SPN hazards
-          h <- haz(M=x,t=tNow,h=human_states,idk=idx)
+          h <- haz(M=x,t=tNow,h=human_states,idx=idx)
           if(any(h > maxhaz)){
             stop("hazard too large, terminating simulation.\n\ttry reducing dt")
           }

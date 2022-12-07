@@ -402,8 +402,14 @@ base_female_SEIR <- function(params){
       # check if there are any infected humans
       #  the eq calcs fail if there aren't
       if(X[node,3] != 0){
+        # setup force of infection
+        # c is human to mosquito transmission efficiency
+        # a is human biting rate
+        # x is prevalence of disease in humans
+        FOI <- c[node] * a * X[node,3]
+
         # make the generator matrix
-        Qmat <- make_Q_SEI(q=qEIP,n=nEIP,mu=muF,c=c[node],a=a,x=X[node,3])
+        Qmat <- make_Q_SEI(q=qEIP,n=nEIP,mu=muF,FOI=FOI)
 
         # compute Green matrix and condition on starting in S compartment
         D0 <- Qmat[1:(nrow(Qmat)-1),1:(ncol(Qmat)-1)]

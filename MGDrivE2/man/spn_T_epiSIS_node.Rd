@@ -4,7 +4,7 @@
 \alias{spn_T_epiSIS_node}
 \title{Make Transitions (T) For a Node (SEI Mosquitoes - SIS Humans)}
 \usage{
-spn_T_epiSIS_node(spn_P, params, cube, feqTol = 1.5e-08)
+spn_T_epiSIS_node(spn_P, params, cube, decoupled = FALSE, feqTol = 1.5e-08)
 }
 \arguments{
 \item{spn_P}{set of places produced by \code{\link{spn_P_epiSIS_node}}}
@@ -13,11 +13,14 @@ spn_T_epiSIS_node(spn_P, params, cube, feqTol = 1.5e-08)
 
 \item{cube}{an inheritance cube from the \code{MGDrivE} package (e.g. \code{\link[MGDrivE]{cubeMendelian}})}
 
+\item{decoupled}{boolean to denote if using decoupled sims, default is \code{FALSE}}
+
 \item{feqTol}{tolerance for numerical equality, default is sqrt(.Machine$double.eps)}
 }
 \value{
-a list with two elements: \code{T} contains transitions packets as lists,
-\code{v} is the character vector of transitions (T)
+a list with two or three elements: \code{T} contains transitions packets as lists,
+\code{v} is the character vector of transitions (T), and (if \code{decoupled == TRUE})
+\code{inf_labels} is the female infection transitions
 }
 \description{
 This function makes the set of transitions (T) for a SPN. It is used alone if
@@ -32,11 +35,14 @@ and builds all possible transitions between subsets of those places.
 The \code{params} argument supplies all of the ecological parameters necessary
 to calculate equilibrium values. This function requires the \code{nE},
 \code{nL}, \code{nP}, and \code{nEIP} parameters to be specified. For more details, see
-\code{\link{equilibrium_SEI_SIS}}
+\code{\link{equilibrium_SEI_SIS}}, \code{\link{equilibrium_SEI_decoupled_mosy}},
+or \code{\link{equilibrium_Imperial_decoupled}}.
 
 While this function produces all structural information related to transitions,
 hazards are produced by a separate function, \code{\link{spn_hazards}}.
 
 For examples of using this function, see:
-\code{vignette("epi-node", package = "MGDrivE2")}
+\code{vignette("epi-node", package = "MGDrivE2")},
+\code{vignette("epi-node-decoupled", package = "MGDrivE2")}, or
+\code{vignette("epi-node-imperial", package = "MGDrivE2")}.
 }

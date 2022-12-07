@@ -173,10 +173,10 @@ spn_hazards <- function(spn_P,spn_T,cube,params,type="life",
   # check if dynamics change - replace female infection func, human won't get used
   if(type == "SIS-decoupled"){
     # SIS decoupled
-    infFuncs["female_inf"] <- make_female_inf_epi_haz_decoupled_SIS
+    infFuncs[["female_inf"]] <- make_female_inf_epi_haz_decoupled_SIS
   } else if(type == "Imperial"){
     # Imperial decoupled
-    infFuncs["female_inf"] <- make_female_inf_epi_haz_decoupled_Imperial
+    infFuncs[["female_inf"]] <- make_female_inf_epi_haz_decoupled_Imperial
   }
 
   # epidemiological hazards

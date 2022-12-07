@@ -4,12 +4,14 @@
 \alias{spn_P_epiSIS_node}
 \title{Make Places (P) For a Node (SEI Mosquitoes - SIS Humans)}
 \usage{
-spn_P_epiSIS_node(params, cube)
+spn_P_epiSIS_node(params, cube, decoupled = FALSE)
 }
 \arguments{
 \item{params}{a named list of parameters (see details)}
 
 \item{cube}{an inheritance cube from the \code{MGDrivE} package (e.g. \code{\link[MGDrivE]{cubeMendelian}})}
+
+\item{decoupled}{boolean to denote if using decoupled sims, default is \code{FALSE}}
 }
 \value{
 a list with two elements: \code{ix} contains labeled indices of the places
@@ -25,8 +27,16 @@ larger state spaces (metapopulation models, see \code{\link{spn_P_epiSIS_network
 The \code{params} argument supplies all of the ecological parameters necessary
 to calculate equilibrium values. This function requires the \code{nE},
 \code{nL}, \code{nP}, and \code{nEIP} parameters to be specified. For more details, see
-\code{\link{equilibrium_SEI_SIS}}
+\code{\link{equilibrium_SEI_SIS}}, \code{\link{equilibrium_SEI_decoupled_mosy}}
+or \code{\link{equilibrium_Imperial_decoupled}}.
+
+If it is used with the decoupled simulations, we only
+use the SPN framework for the mosquito component of the model. The human component
+will be handled separately in the sampler, and will be formulated as an ODE.
+This is used by both SIS-decoupled and Imperial transmission models
 
 For examples of using this function, see:
-\code{vignette("epi-node", package = "MGDrivE2")}
+\code{vignette("epi-node", package = "MGDrivE2")},
+\code{vignette("epi-node-decoupled", package = "MGDrivE2")} or
+\code{vignette("epi-node-imperial", package = "MGDrivE2")}.
 }

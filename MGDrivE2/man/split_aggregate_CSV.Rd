@@ -11,6 +11,7 @@ split_aggregate_CSV(
   spn_P,
   tmax,
   dt,
+  human_states = NULL,
   erlang = FALSE,
   sum_fem = FALSE,
   rem_file = FALSE,
@@ -30,9 +31,11 @@ split_aggregate_CSV(
 
 \item{dt}{The time-step at which to return output (\strong{not} the time-step of the sampling algorithm)}
 
+\item{human_states}{Human state distribution for decoupled simulations. Default is NULL}
+
 \item{erlang}{Boolean, default is FALSE, to return summaries by genotype}
 
-\item{sum_fem}{if \code{TRUE}, in addition to FS, FE, FI output by node and repetition, output an
+\item{sum_fem}{If \code{TRUE}, in addition to FS, FE, FI output by node and repetition, output an
 additional file F which sums over infection states (S,E,I). Does nothing if the
 simulation did not include epi dynamics.}
 
@@ -105,6 +108,9 @@ The places (\code{spn_P}) object is generated from one of the following:
 
 \code{tmax}, \code{dt} define the last sampling
 time, and each sampling time in-between.
+
+Default usages leaves \code{human_states} as null. For use with decoupled
+sims (\code{\link{sim_trajectory_CSV_decoupled}}), provide the \code{human_states} to the analysis.
 
 For more details about using this function to process CSV output see:
 \code{vignette("data-analysis", package = "MGDrivE2")}

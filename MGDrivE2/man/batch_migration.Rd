@@ -15,7 +15,8 @@ batch_migration(
   Fprob = NULL,
   Mrates = NULL,
   Mmove = NULL,
-  Mprob = NULL
+  Mprob = NULL,
+  stage = NULL
 )
 }
 \arguments{
@@ -40,13 +41,18 @@ batch_migration(
 \item{Mmove}{movement matrix for destinations of adult male batch migration events (diagonal will be set to zero and off-diagonal elements normalized)}
 
 \item{Mprob}{probability for each individual to be chosen for adult male batch migration events (must be same length as \code{Mrates})}
+
+\item{stage}{either \code{NULL} or "E", "L", or "P". If not \code{NULL} and migration for aquatic stages is specified by \code{ELPrates}, only the aquatic stage specified here will move}
 }
 \description{
-Sample batch migration events for simulation given rates of occurance and probability of destination for each patch.
-Batch migration can be simulated for the aquatic life stages (eggs, larvae, pupae), adult females, and/or adult males.
-To simulate batch migration, each life stage needs all 3 of its arguments specified. If any arguments are left
-unspecified (\code{NULL}), batch migration for that life stage will not be sampled.
-The output of this function should be passed to \code{\link[MGDrivE2]{sim_trajectory_R}} or \code{\link[MGDrivE2]{sim_trajectory_CSV}}
-as the argument \code{batch}.
-Calls the internal function \code{\link[MGDrivE2]{batch_migration_stage}}.
+Sample batch migration events for simulation given rates of occurrence and
+probability of destination for each patch. Batch migration can be simulated
+for the aquatic life stages (eggs, larvae, pupae), adult females, and/or adult males.
+To simulate batch migration, each life stage needs all 3 of its arguments specified.
+If any arguments are left unspecified (\code{NULL}), batch migration for that
+life stage will not be sampled. The output of this function should be passed to
+\code{\link[MGDrivE2]{sim_trajectory_R}}, \code{\link[MGDrivE2]{sim_trajectory_CSV}},
+\code{\link[MGDrivE2]{sim_trajectory_R_decoupled}}, or \code{\link[MGDrivE2]{sim_trajectory_CSV_decoupled}}
+as the argument \code{batch}. This function calls \code{\link[MGDrivE2]{batch_migration_stage}}
+internally.
 }

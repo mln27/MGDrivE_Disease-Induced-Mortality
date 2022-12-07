@@ -7,7 +7,7 @@
 batch_migration_stage(SPN_P, rates, move, prob, stage, tmax)
 }
 \arguments{
-\item{SPN_P}{a set of Petri net places}
+\item{SPN_P}{a set of Petri Net places}
 
 \item{rates}{a vector of rates for each node}
 
@@ -15,7 +15,7 @@ batch_migration_stage(SPN_P, rates, move, prob, stage, tmax)
 
 \item{prob}{the probability vector for each individual moving in each batch}
 
-\item{stage}{the life stage (one of 'ELP', 'F', 'M')}
+\item{stage}{the life stage (one of 'ELP', 'E', 'L', 'P', 'F', 'M')}
 
 \item{tmax}{maximum simulation time}
 }

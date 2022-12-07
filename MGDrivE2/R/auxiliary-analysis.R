@@ -106,8 +106,8 @@ split_aggregate_CSV <- function(
   human_states = NULL,
   erlang = FALSE,
   sum_fem = FALSE,
-  rem_file=FALSE,
-  verbose=TRUE
+  rem_file = FALSE,
+  verbose = TRUE
 ){
 
   ##########
@@ -202,7 +202,7 @@ split_aggregate_CSV <- function(
 
 
   # setup human stuff
-  if(!is.null(human_states)){
+  if(is.null(human_states)){
     # standard, non-decoupled analysis
     #  human nodes
     hNodes <- which(x = vapply(X = spn_P$ix,
@@ -925,7 +925,7 @@ summarize_stats_CSV <- function(
   mosyNodeNames <- formatC(x = mosyNodes, width = 4, format = "d", flag = "0")
 
   # setup human stuff
-  if(!is.null(human_states)){
+  if(is.null(human_states)){
     # standard, non-decoupled analysis
     #  human nodes
     hNodes <- which(x = vapply(X = spn_P$ix,
