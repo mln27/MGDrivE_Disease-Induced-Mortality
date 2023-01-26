@@ -4,7 +4,7 @@
 \alias{make_Q_SEI}
 \title{Rate Matrix (Q) for Adult Mosquito SEI Dynamics}
 \usage{
-make_Q_SEI(q, n, mu, c, a, x)
+make_Q_SEI(q, n, mu, FOI)
 }
 \arguments{
 \item{q}{related to scale parameter of Gamma distributed EIP (1/q is mean length of EIP)}
@@ -13,11 +13,7 @@ make_Q_SEI(q, n, mu, c, a, x)
 
 \item{mu}{mosquito mortality rate}
 
-\item{c}{human to mosquito transmission efficiency}
-
-\item{a}{human biting rate}
-
-\item{x}{prevalence of disease in humans}
+\item{FOI}{equilibrium force of infection on mosquitos}
 }
 \value{
 rate matrix for a single (emergence) cohort of SEI mosquito

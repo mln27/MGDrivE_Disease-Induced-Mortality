@@ -22,19 +22,28 @@
 #' The \code{params} argument supplies all of the ecological parameters necessary
 #' to calculate equilibrium values. This function requires the \code{nE},
 #' \code{nL}, \code{nP}, and \code{nEIP} parameters to be specified. For more details, see
-#' \code{\link{equilibrium_SEI_SIS}}
+#' \code{\link{equilibrium_SEI_SIS}}, \code{\link{equilibrium_SEI_decoupled_mosy}}
+#' or \code{\link{equilibrium_Imperial_decoupled}}.
+#'
+#' If it is used with the decoupled simulations, we only
+#' use the SPN framework for the mosquito component of the model. The human component
+#' will be handled separately in the sampler, and will be formulated as an ODE.
+#' This is used by both SIS-decoupled and Imperial transmission models
 #'
 #' For examples of using this function, see:
-#' \code{vignette("epi-node", package = "MGDrivE2")}
+#' \code{vignette("epi-node", package = "MGDrivE2")},
+#' \code{vignette("epi-node-decoupled", package = "MGDrivE2")} or
+#' \code{vignette("epi-node-imperial", package = "MGDrivE2")}.
 #'
 #' @param params a named list of parameters (see details)
 #' @param cube an inheritance cube from the \code{MGDrivE} package (e.g. \code{\link[MGDrivE]{cubeMendelian}})
+#' @param decoupled boolean to denote if using decoupled sims, default is \code{FALSE}
 #'
 #' @return a list with two elements: \code{ix} contains labeled indices of the places
 #' by life stage, \code{u} is the character vector of places (P)
 #'
 #' @export
-spn_P_epiSIS_node <- function(params,cube){
+spn_P_epiSIS_node <- function(params,cube,decoupled=FALSE){
 
   # checks
   nE <- params$nE
@@ -69,9 +78,6 @@ spn_P_epiSIS_node <- function(params,cube){
 
   males <- file.path("M",g, fsep = "_")
 
-  # human places
-  humans <- c("H_S","H_I")
-
   # indices of states
   ix <- list()
   ix$egg <- matrix(seq_along(eggs),nrow = nE,byrow = FALSE,dimnames = list(1:nE,g))
@@ -88,10 +94,20 @@ spn_P_epiSIS_node <- function(params,cube){
         perm = c(2,1,3),resize = TRUE)
 
   ix$males <- setNames(object = seq_along(males) + nG*(nE+nL+nP+nG*(nEIP+2) + 1), nm = g)
-  ix$humans <- setNames(object = seq_along(humans) + nG*(nE+nL+nP+nG*(nEIP+2) + 2),nm = humans)
 
   # places (u)
-  u <- c(eggs,larvae,pupae,females_unmated,females,males,humans)
+  u <- c(eggs,larvae,pupae,females_unmated,females,males)
+
+  # check for decoupled setup
+  if(!decoupled){
+    # we're doing normal sims, calculate and add humans
+    # human places
+    humans <- c("H_S","H_I")
+    # human indices
+    ix$humans <- setNames(object = seq_along(humans) + nG*(nE+nL+nP+nG*(nEIP+2) + 2),nm = humans)
+    # add humans to places
+    u <- c(u,humans)
+  }
 
   # return list of places
   #  make ix a list to match network version

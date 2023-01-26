@@ -10,9 +10,14 @@
 ###############################################################################
 #   equilibrium for SIS
 ###############################################################################
-# This is extremely similartoo the SIS equilibrium function. If there is a better
+# This is extremely similar to the SIS equilibrium function. If there is a better
 #  way of having both of these functions, with the difference in humans, that would
 #  be great.
+#
+# 20221204 JB
+#  We could actually make a base function out of most of this, and input the female
+#  func and the adult stages. Some checks would need moved out of the base function
+#  into the specific ones, but that's way less than all of this code duplication.
 
 #' Calculate Equilibrium for Mosquito SEI - Human SEIR Model
 #'
@@ -397,8 +402,14 @@ base_female_SEIR <- function(params){
       # check if there are any infected humans
       #  the eq calcs fail if there aren't
       if(X[node,3] != 0){
+        # setup force of infection
+        # c is human to mosquito transmission efficiency
+        # a is human biting rate
+        # x is prevalence of disease in humans
+        FOI <- c[node] * a * X[node,3]
+
         # make the generator matrix
-        Qmat <- make_Q_SEI(q=qEIP,n=nEIP,mu=muF,c=c[node],a=a,x=X[node,3])
+        Qmat <- make_Q_SEI(q=qEIP,n=nEIP,mu=muF,FOI=FOI)
 
         # compute Green matrix and condition on starting in S compartment
         D0 <- Qmat[1:(nrow(Qmat)-1),1:(ncol(Qmat)-1)]

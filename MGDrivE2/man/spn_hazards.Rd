@@ -25,7 +25,7 @@ spn_hazards(
 
 \item{params}{a named list of parameters (see details)}
 
-\item{type}{string indicating type of hazards, one of; "life", "SIS", or "SEIR"}
+\item{type}{string indicating type of hazards, one of; "life", "SIS", "SEIR", "SIS-decoupled", or "Imperial"}
 
 \item{log_dd}{if \code{TRUE}, use logistic (carrying capacity) density dependent hazards, if \code{FALSE} use Lotka-Volterra density dependent hazards for larval mortality}
 
@@ -64,13 +64,14 @@ The set of transitions (\code{spn_T}) is generated from one of the following:
 \code{\link{spn_T_epiSIS_node}}, \code{\link{spn_T_epiSIS_network}},
 \code{\link{spn_T_epiSEIR_node}}, \code{\link{spn_T_epiSEIR_network}}.
 
-The \code{params} objected is generated from either \code{\link{equilibrium_lifeycle}}
-or \code{\link{equilibrium_SEI_SIS}}; it is the "params" object in the return
+The \code{params} objected is generated from \code{\link{equilibrium_lifeycle}},
+\code{\link{equilibrium_SEI_SIS}}, \code{\link{equilibrium_SEI_decoupled_mosy}},
+or \code{\link{equilibrium_Imperial_decoupled}}; it is the "params" object in the return
 list. The equilibrium function used must match the \code{type} parameter.
 
 The \code{type} parameter indicates what type of simulation is being run. It
-is one of: "life", "SIS", or "SEIR". This must match the \code{params} object
-supplied.
+is one of: "life", "SIS", "SEIR", "SIS-decoupled", or "Imperial". This must
+match the \code{params} object supplied.
 
 Use of this function is demonstrated in many vignettes, \code{browseVignettes(package = "MGDrivE2")}
 }

@@ -5,11 +5,76 @@
 #   Sean L. Wu (slwu89@berkeley.edu)
 #   October 2019
 #
+#   Martial Lab
+#   Jared Bennett (jared_bennett@berkeley.edu)
+#   December 2022
+#
 ################################################################################
 
 ###############################################################################
-#   equilibrium for SIS
+#   Equilibrium for Decoupled Model
 ###############################################################################
+#' Calculate Decoupled Equilibrium
+#'
+#' This function calculates the mosquito and human equilibrium for the decoupled
+#' simulations. \strong{This function only runs 1 node}. It cannot generate
+#' anything for a network.
+#'
+#' For mosquito equilibrium, this function calls \code{\link{equilibrium_SEI_decoupled_mosy}} internally.
+#'
+#' For human equilibrium, this function calls \code{\link{equilibrium_SEI_decoupled_human}} internally.
+#'
+#' For examples of using this function, see:
+#' \code{vignette("epi-node-decoupled", package = "MGDrivE2")}
+#'
+#' @param params a named list of parameters
+#' @param spn_P the set of places (P)
+#' @param cube an inheritance cube from the \code{MGDrivE} package (e.g. \code{\link[MGDrivE]{cubeMendelian}})
+#'
+#' @return a list of parameters and initial conditions
+#'
+#' @export
+equilibrium_SEI_decoupled <- function(params, spn_P, cube){
+
+  # calculate mosquito equilibrium
+  initialCons <- equilibrium_SEI_decoupled_mosy(params = params,
+                                                spn_P = spn_P,
+                                                cube = cube,
+                                                node_list="b", NF=NULL,
+                                                phi=0.5, NH=NULL, log_dd=TRUE,
+                                                pop_ratio_Aq=NULL, pop_ratio_F=NULL,
+                                                pop_ratio_M=NULL, pop_ratio_H=1)
+
+  # calculate/add human equilibrium
+  initialCons$H <- equilibrium_SEI_decoupled_human(params = params)
+
+  # return complete params
+  return(initialCons)
+}
+
+###############################################################################
+# equilibrium base funcs
+###############################################################################
+#######################################
+# human base func
+#######################################
+#' This function calculates the equilibrium values for the decoupled SIS human states.
+#' Currently this only works in one node.
+#'
+#' @param params a named list of parameters (see details)
+#'
+#' @return a vector of the equilibrium number of humans in each SIS stage
+#'
+equilibrium_SEI_decoupled_human <- function(params) {
+    idxB <- 1
+    hRatio <- params$NH[idxB] * c(1-params$X[idxB],params$X[idxB])
+    names(hRatio) <- c("H_S", "H_I")
+    return(hRatio)
+}
+
+#######################################
+# mosquito base func
+#######################################
 # This is extremely similar to the SEIR equilibrium function, as much as possible
 #  has been turned into a function and reused. However, because of the different
 #  shapes for defining humans, several small things had to change, and lots of this
@@ -21,12 +86,16 @@
 #  func and the adult stages. Some checks would need moved out of the base function
 #  into the specific ones, but that's way less than all of this code duplication.
 
-#' Calculate Equilibrium for Mosquito SEI - Human SIS Model
+
+#' Calculate Equilibrium for Decoupled Mosquito SEI model
 #'
 #' Given prevalence of disease in humans (modeled as an SIS: Susceptible-Infected-Susceptible
 #' process with birth and death) and entomological parameters of transmission, this
 #' function calculates the quasi-stationary distribution of adult female mosquitoes
 #' across SEI (Susceptible-Exposed-Infectious) stages, allowing for Erlang distributed E stage.
+#'
+#' Decoupled sampling is currently only supported for one-node dynamics: a single
+#' node with mosquitoes parameterized by the distribution of human states.
 #'
 #' This function handles 3 types of nodes: Human only, mosquito only, and nodes
 #' with both. These nodes are set using the \code{node_list} parameter.
@@ -53,10 +122,8 @@
 #'    * Bladt, Mogens, and Bo Friis Nielsen. Matrix-exponential distributions in
 #'    applied probability. Vol. 81. New York: Springer, 2017.
 #'
-#' The places (\code{spn_P}) object is generated from one of the following:
-#' \code{\link{spn_P_lifecycle_node}}, \code{\link{spn_P_lifecycle_network}},
-#' \code{\link{spn_P_epiSIS_node}}, \code{\link{spn_P_epiSIS_network}},
-#' \code{\link{spn_P_epiSEIR_node}}, or \code{\link{spn_P_epiSEIR_network}}.
+#' The places (\code{spn_P}) object is generated from \code{\link{spn_P_epiSIS_node}},
+#' specifying the \code{decoupled = TRUE} parameter.
 #'
 #' The initial population genotype ratios are set by supplying the \code{pop_ratio_Aq},
 #' \code{pop_ratio_F}, and \code{pop_ratio_M} values. The default value is NULL,
@@ -106,9 +173,6 @@
 #' For equilibrium without epidemiological parameters, see \code{\link{equilibrium_lifeycle}}.
 #' For equilibrium with latent humans (SEIR dynamics), see \code{\link{equilibrium_SEI_SEIR}}.
 #'
-#' For examples of using this function, see:
-#' \code{vignette("lifecycle-node", package = "MGDrivE2")}
-#'
 #' @param params a named list of parameters (see details)
 #' @param node_list a character vector specifying what type of nodes to create;
 #' (m = a node with only mosquitoes, h = a node with only humans, b = a node with both humans and mosquitoes)
@@ -128,8 +192,7 @@
 #'
 #' @importFrom Matrix solve
 #'
-#' @export
-equilibrium_SEI_SIS <- function(params, node_list="b",NF=NULL,phi=0.5, NH=NULL,log_dd=TRUE,
+equilibrium_SEI_decoupled_mosy <- function(params, node_list="b",NF=NULL,phi=0.5, NH=NULL,log_dd=TRUE,
                                 spn_P, pop_ratio_Aq=NULL, pop_ratio_F=NULL,
                                 pop_ratio_M=NULL, pop_ratio_H=1, cube){
 
@@ -142,8 +205,6 @@ equilibrium_SEI_SIS <- function(params, node_list="b",NF=NULL,phi=0.5, NH=NULL,l
   }
 
   # checks to perform if there are mixed nodes
-  #  should we / can we implement this with a default for the parameters to be
-  #  the same over all nodes?
   numBoth <- sum(node_list=="b")
   if(numBoth){
     if(any(numBoth != c(length(params$NH),length(params$b),length(params$c),length(params$X)) ) ){
@@ -160,31 +221,16 @@ equilibrium_SEI_SIS <- function(params, node_list="b",NF=NULL,phi=0.5, NH=NULL,l
   # checks for human-only nodes
   numH <- sum(node_list=="h")
   if(numH){
-    # total humans
-    if( length(NH)==1 ){
-      NH <- rep.int(x = NH, times = numH)
-    } else if( length(NH)!= numH){
-      stop("NH must be length 1 or the same length as the number of human-only patches")
+    # total and prevalence in humans
+    if(all(numH != c(length(NH),length(pop_ratio_H)) ) ){
+      stop("NH and pop_ratio_H must be the same length as the number of human-only patches")
     }
+  }
 
-    # prevalence in humans
-    if( length(pop_ratio_H)==1 ){
-      pop_ratio_H <- rep.int(x = pop_ratio_H, times = numH)
-    } else if( length(pop_ratio_H)!=numH ){
-      stop("pop_ratio_H must be length 1 or the same length as the number of human-only patches")
-    }
-  } # end human nodes
+  if(sum(node_list=="m") != length(NF)){
+    stop("NF must be the same length as the number of mosquito-only patches")
+  }
 
-  # checks for mosquito-only nodes
-  numM <- sum(node_list=="m")
-  if( length(NF)==1 ){
-    NF <- rep.int(x = NF, times = numM)
-  } else if( length(NF)!=numM ){
-    stop("NF must be length 1 or the same length as the number of mosquito-only patches")
-  } # end mosquito nodes
-
-  # can these have a default built-in for all nodes to share the same parameters
-  #  without having to build vectors of repeated entries?
   num_nodes <- length(node_list)
   eMsg <- paste0("population ratios (popRatio_{Aq,F,M} must be one of three values:\n",
            "    NULL (defult), where genotypes are taken from the cube.\n",
@@ -229,11 +275,11 @@ equilibrium_SEI_SIS <- function(params, node_list="b",NF=NULL,phi=0.5, NH=NULL,l
   M0 <- setNames(object = numeric(length = length(spn_P$u)), nm = spn_P$u)
   dPar <- numeric(length = num_nodes)
   initMat <- matrix(data = NA, nrow = num_nodes,
-                     ncol = (nELP + 1) + (nEIP+2) + 2,
+                     ncol = (nELP + 1) + (nEIP+2),
                      dimnames = list(1:num_nodes,c(paste0("E",1:nE),paste0("L",1:nL),
                                                   paste0("P",1:nP),"M",
-                                                  c("F_S",paste0("F_E",1:nEIP),"F_I"),
-                                                  "H_S","H_I")) )
+                                                  c("F_S",paste0("F_E",1:nEIP),"F_I")
+                                                  )) )
 
 
   # loop over node_list, fill M0, inits mat, and density parameter
@@ -266,7 +312,6 @@ equilibrium_SEI_SIS <- function(params, node_list="b",NF=NULL,phi=0.5, NH=NULL,l
       # fill inits conditions
       initMat[node,1:(nELP+1)] <- mosyHList$init[idxB, -(nELP+2)]
       initMat[node,1:(nEIP+2) + (nELP+1)] <- fSEI[idxB, ]
-      initMat[node,1:2 + (nELP+nEIP+3)] <- hRatio
 
       # fill density parameter
       #  there is only 1 element in params list, K or gamma, so [[1]] gets it right
@@ -331,218 +376,4 @@ equilibrium_SEI_SIS <- function(params, node_list="b",NF=NULL,phi=0.5, NH=NULL,l
 
   return(retList)
 
-}
-
-
-###############################################################################
-# Populations base func
-###############################################################################
-set_populations <- function(node_list,params,phi,log_dd,NF,
-                            pop_ratio_Aq,pop_ratio_F,pop_ratio_M,cube,
-                            fem_func){
-
-    # create objects depending on what nodes are here
-  if(any(node_list %in% "b")){
-    # female SEI equilibrium
-    #  matrix over all human and mosquito habitats
-    fSEI <- fem_func(params = params)
-
-    # mosquito distribution for human/mosquito habitats
-    mosyHList <- basic_eq_life(params = params,NF = rowSums(fSEI),phi = phi,log_dd = log_dd)
-
-    # generate population distribution
-    if(!any(is.null(pop_ratio_Aq) || length(pop_ratio_Aq)==1)){
-      hAq <- pop_ratio_Aq[which(node_list == "b")]
-    } else {
-      hAq <- pop_ratio_Aq
-    }
-    if(!any(is.null(pop_ratio_F) || length(pop_ratio_F)==1)){
-      hF <- pop_ratio_F[which(node_list == "b")]
-    } else {
-      hF <- pop_ratio_F
-    }
-    if(!any(is.null(pop_ratio_M) || length(pop_ratio_M)==1)){
-      hM <- pop_ratio_M[which(node_list == "b")]
-    } else {
-      hM <- pop_ratio_M
-    }
-
-    # pass things back to parent environment
-    assign(x = "fSEI", value = fSEI, pos = parent.frame())
-    assign(x = "mosyHList", value = mosyHList, pos = parent.frame())
-    assign(x = "hPopAq", value = calc_Ratio_Aq(pop_ratio_Aq = hAq, cube = cube, num_patch = nrow(fSEI)),
-           pos = parent.frame())
-    assign(x = "hPopF", value = calc_Ratio_F(pop_ratio_F = hF, cube = cube, num_patch = nrow(fSEI)),
-           pos = parent.frame())
-    assign(x = "hPopM", value = calc_Ratio_M(pop_ratio_M = hM,cube = cube,num_patch = nrow(fSEI)),
-           pos = parent.frame())
-
-  } # end human/mosquito node calcs
-  if(any(node_list %in% "m")){
-    # setup mosquito only equilibrium
-    #  list of initial distributions
-    #  "params" element with gamma or K
-    mosyList <- basic_eq_life(params = params,NF = NF,phi = phi,log_dd = log_dd)
-
-    # generate population distribution
-    if(!any(is.null(pop_ratio_Aq) || length(pop_ratio_Aq)==1)){
-      mAq <- pop_ratio_Aq[which(node_list == "m")]
-    } else {
-      mAq <- pop_ratio_Aq
-    }
-    if(!any(is.null(pop_ratio_F) || length(pop_ratio_F)==1)){
-      mF <- pop_ratio_F[which(node_list == "m")]
-    } else {
-      mF <- pop_ratio_F
-    }
-    if(!any(is.null(pop_ratio_M) || length(pop_ratio_M)==1)){
-      mM <- pop_ratio_M[which(node_list == "m")]
-    } else {
-      mM <- pop_ratio_M
-    }
-
-    # pass things back to parent environment
-    assign(x = "mosyList", value = mosyList, pos = parent.frame())
-    assign(x = "mPopAq", value = calc_Ratio_Aq(pop_ratio_Aq = mAq, cube = cube, num_patch = nrow(mosyList$init)),
-           pos = parent.frame())
-    assign(x = "mPopF", value = calc_Ratio_F(pop_ratio_F = mF, cube = cube, num_patch = nrow(mosyList$init)),
-           pos = parent.frame())
-    assign(x = "mPopM", value = calc_Ratio_M(pop_ratio_M = mM,cube = cube,num_patch = nrow(mosyList$init)),
-           pos = parent.frame())
-  } # end mosquito node calcs
-}
-
-
-
-###############################################################################
-# equilibrium base func
-###############################################################################
-# this calculates equilibrium females, SEI, based on humans and epi info
-# vectorized over: NH, X, b, and c
-# optional parameter, NFX, if X = 0
-# only used in equilibrium_SEI_SIS
-base_female_SIS <- function(params){
-
-  with(params,{
-
-    # compund values
-    a <- f*Q # HBR
-
-    # human pop
-    SH <- NH*(1-X)
-    IH <- NH*(X)
-
-    # number of infectious mosquitos required to sustain transmission
-    IV <- (IH*NH*(r + muH)) / (a*b*SH)
-
-    # setup female pops for return
-    nNode <- length(NH)
-    femPop <- matrix(data = 0, nrow = nNode, ncol = nEIP+2,
-                     dimnames = list(1:nNode,c("S",paste0("E",1:nEIP),"I")))
-
-    # loop over all nodes and compute!
-    for(node in 1:nNode){
-      # check if there are any infected humans
-      #  the eq calcs fail if there aren't
-      if(X[node] != 0){
-        # setup force of infection
-        # c is human to mosquito transmission efficiency
-        # a is human biting rate
-        # x is prevalence of disease in humans
-        FOI <- c[node] * a * X[node]
-
-        # make the generator matrix
-        Qmat <- make_Q_SEI(q=qEIP,n=nEIP,mu=muF,FOI=FOI)
-
-        # compute Green matrix and condition on starting in S compartment
-        D0 <- Qmat[1:(nrow(Qmat)-1),1:(ncol(Qmat)-1)]
-        # D0inv <- solve(-D0)
-        # ttd <- D0inv[1,]
-        ttd <- solve(-D0)[1,]
-        ttd <- ttd/sum(ttd)
-
-        # total number of mosquitos
-        NV <- IV[node] / tail(ttd,1)
-
-        # set female mosquito distribution
-        femPop[node, ] <- NV*ttd
-      } else {
-        # set female mosquito distribution
-        femPop[node,"S"] <- NFX[node]
-      }
-
-    } # end node loop
-
-    # return matrix of female mosquitoes
-    return(femPop)
-
-  }) # end with
-}
-
-
-###############################################################################
-# rate matrix
-###############################################################################
-
-#' Rate Matrix (Q) for Adult Mosquito SEI Dynamics
-#'
-#' Construct the infinitesimal generator matrix for (individual) adult female
-#' infection dynamics. Adult females follow SEI (Susceptible-Exposed-Infectious)
-#' style dynamics with a Gamma distributed EIP, with a mean duration 1/q and
-#' variance 1/nq^2 (following shape-scale parameterization, EIP ~ Gamma(n,1/nq)).
-#' This function only constructs the rate matrix for either a single mosquito or
-#' cohort that all emerged at the same time (the rate matrix for a population
-#' with emergence is infinite in dimension).
-#'
-#' @param q related to scale parameter of Gamma distributed EIP (1/q is mean length of EIP)
-#' @param n shape parameter of Gamma distributed EIP
-#' @param mu mosquito mortality rate
-#' @param FOI equilibrium force of infection on mosquitos
-#'
-#' @return rate matrix for a single (emergence) cohort of SEI mosquito
-#'
-#' @importFrom Matrix Matrix
-#'
-make_Q_SEI <- function(q, n, mu, FOI){
-
-  # check nEIP is at least 1
-  stopifnot(n >= 1)
-
-  states <- c("S",paste0("E",1:n),"I","D")
-  D <- (n+3)
-  Q <- Matrix::Matrix(data = 0.0,nrow=D,ncol=D,dimnames=list(states,states),
-                      sparse = FALSE,doDiag = FALSE)
-
-  # Sv
-  Q[1,2] <- FOI
-  Q[1,D] <- mu
-  Q[1,1] <- -sum(Q[1,]) # because of floating point inaccuracies
-
-  # Ev(1)
-  Q[2,3] <- q*n
-  Q[2,D] <- mu
-  Q[2,2] <- -sum(Q[2,])
-  i <- 3
-
-  # EIP
-  if(n > 1){
-
-    # Ev(2,...,EIP)
-    for(i in (2:n)+1){
-      Q[i,i+1] <- q*n
-      Q[i,D] <- mu
-      Q[i,i] <- -sum(Q[i,])
-    }
-    i <- i + 1
-
-  }
-
-  # Iv
-  Q[i,i] <- -mu
-  Q[i,D] <- mu
-
-  # D
-  Q[D,D] <- 0
-
-  return(Q)
 }

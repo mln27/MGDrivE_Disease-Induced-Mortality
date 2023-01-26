@@ -85,16 +85,13 @@
 #' @return a list with 2 elements: "state" is the array of returned state values, and "events" will
 #'        return events tracked with \code{Sout} if provided, otherwise is \code{NULL}
 #'
-#' @importFrom stats rbinom
-#'
 #' @export
 sim_trajectory_R <- function(
   x0, tmax, dt=1, dt_stoch = 0.1, num_reps=1,
   S, hazards, Sout = NULL, sampler = "tau", method = "lsoda",
-  events = NULL, batch = NULL, verbose = TRUE,...
-){
+  events = NULL, batch = NULL, verbose = TRUE, ...){
 
-  if(sampler == "ode" & !is.null(batch)){
+  if((sampler=="ode") && !is.null(batch)){
     stop("batch migration is incompatible with deterministic simulations")
   }
 
@@ -186,7 +183,7 @@ base_stepFunc <- function(sampler,S,hazards,Sout = NULL,dt_stoch,method,...){
 
 
 #######################################
-# Time Funtion
+# Time Function
 #######################################
 
 # check time, and setup sampling times
@@ -215,7 +212,7 @@ base_time <- function(t0 = 0,tt,dt){
 
 # place for checks on the initial markings
 # doesn't return anything, just errors if there are problems
-# x0 = initial petri net markings
+# x0 = initial petri Net markings
 #
 base_x0 <- function(x0){
   # check names are valid
@@ -380,9 +377,8 @@ sim_trajectory_base_R <- function(x0, times, num_reps, stepFun, events = NULL,
   # set up event tracking (tracks differences, so one less time output than state)
   if(!is.null(Sout)){
     track <- TRUE
-    ret_events <- array(
-      data = 0, dim = c(nTime-1, nrow(Sout)+1, num_reps), dimnames = list(times[-1], c("time",rownames(Sout)), 1:num_reps)
-    )
+    ret_events <- array(data = 0, dim = c(nTime-1, nrow(Sout)+1, num_reps),
+                        dimnames = list(times[-1], c("time",rownames(Sout)), 1:num_reps) )
     ret_events[,1,] <- times[-1]
   } else {
     track <- FALSE

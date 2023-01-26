@@ -12,6 +12,7 @@ summarize_stats_CSV(
   spn_P,
   tmax,
   dt,
+  human_states = NULL,
   rem_file = FALSE,
   verbose = TRUE
 )
@@ -30,6 +31,8 @@ summarize_stats_CSV(
 \item{tmax}{The final time to end simulation}
 
 \item{dt}{The time-step at which to return output (\strong{not} the time-step of the sampling algorithm)}
+
+\item{human_states}{Human state distribution for decoupled simulations. Default is NULL}
 
 \item{rem_file}{Remove original output? Default is FALSE}
 
@@ -68,6 +71,9 @@ The places (\code{spn_P}) object is generated from one of the following:
 
 \code{t0}, \code{tt}, \code{dt} define the first sampling time, the last sampling
 time, and each sampling time in-between.
+
+Default usages leaves \code{human_states} as null. For use with decoupled
+sims (\code{\link{sim_trajectory_CSV_decoupled}}), provide the \code{human_states} to the analysis.
 
 Output files are *.csv and contain the mean or quantile in the file name, e.g.
 {stage}_Mean_(patchNum).csv and {stage}_Quantile_(quantNum)_(patchNum).csv.

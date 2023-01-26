@@ -24,24 +24,29 @@
 #' The \code{params} argument supplies all of the ecological parameters necessary
 #' to calculate equilibrium values. This function requires the \code{nE},
 #' \code{nL}, \code{nP}, and \code{nEIP} parameters to be specified. For more details, see
-#' \code{\link{equilibrium_SEI_SIS}}
+#' \code{\link{equilibrium_SEI_SIS}}, \code{\link{equilibrium_SEI_decoupled_mosy}},
+#' or \code{\link{equilibrium_Imperial_decoupled}}.
 #'
 #' While this function produces all structural information related to transitions,
 #' hazards are produced by a separate function, \code{\link{spn_hazards}}.
 #'
 #' For examples of using this function, see:
-#' \code{vignette("epi-node", package = "MGDrivE2")}
+#' \code{vignette("epi-node", package = "MGDrivE2")},
+#' \code{vignette("epi-node-decoupled", package = "MGDrivE2")}, or
+#' \code{vignette("epi-node-imperial", package = "MGDrivE2")}.
 #'
 #' @param spn_P set of places produced by \code{\link{spn_P_epiSIS_node}}
 #' @param params a named list of parameters (see details)
 #' @param cube an inheritance cube from the \code{MGDrivE} package (e.g. \code{\link[MGDrivE]{cubeMendelian}})
+#' @param decoupled boolean to denote if using decoupled sims, default is \code{FALSE}
 #' @param feqTol tolerance for numerical equality, default is sqrt(.Machine$double.eps)
 #'
-#' @return a list with two elements: \code{T} contains transitions packets as lists,
-#' \code{v} is the character vector of transitions (T)
+#' @return a list with two or three elements: \code{T} contains transitions packets as lists,
+#' \code{v} is the character vector of transitions (T), and (if \code{decoupled == TRUE})
+#' \code{inf_labels} is the female infection transitions
 #'
 #' @export
-spn_T_epiSIS_node <- function(spn_P,params,cube,feqTol=1.5e-08){
+spn_T_epiSIS_node <- function(spn_P,params,cube,decoupled=FALSE,feqTol=1.5e-08){
 
   # set of places
   u <- spn_P$u
@@ -52,7 +57,7 @@ spn_T_epiSIS_node <- function(spn_P,params,cube,feqTol=1.5e-08){
   # return list of places
   retList <- spn_T_both_epi(u = u,nE = params$nE,nL = params$nL,nP = params$nP,
                             nEIP = params$nEIP,cube = cube,node_id = NULL,
-                            T_index = T_index, feqTol = feqTol)
+                            T_index = T_index, feqTol = feqTol, decoupled = decoupled)
 
 
   # check the set for errors
@@ -153,6 +158,38 @@ make_transition_female_inf_epi <- function(T_index,u,f_gen,m_gen,node=NULL){
   # produces one infected token
   t$o <- match(x = c(ftoken_inf,inf_h), table = u)
   t$o_w <- c(1,1)
+
+  # class of the transition
+  t$class <- "female_inf"
+
+  # return the transition
+  return(t)
+}
+
+# infect a female token
+# inf: infection
+#  for basic and Imperial decoupled sims
+make_transition_female_inf_epi_decoupled <- function(T_index,u,f_gen,m_gen,node=NULL){
+
+  # tokens required: 1 susceptible female, human tokens will be handled in
+  # corresponding hazard function
+  ftoken <- paste0(c("F",f_gen,m_gen,"S",node),collapse = "_")
+
+  # produces an incubating female token
+  ftoken_inf <- paste0(c("F",f_gen,m_gen,"E1",node),collapse = "_")
+
+  # t: {index into v, label, input arcs/weights, output arcs/weights}
+  t <- list()
+  t$vix <- T_index # where we can find this t in v
+  t$label <- paste0(ftoken,"->",ftoken_inf) # name of this t (corresponds to v)
+
+  # requires a female token
+  t$s <- match(x = ftoken, table = u)
+  t$s_w <- 1
+
+  # produces one infected token
+  t$o <- match(x = ftoken_inf, table = u)
+  t$o_w <- 1
 
   # class of the transition
   t$class <- "female_inf"
